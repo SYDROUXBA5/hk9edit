@@ -1,0 +1,11 @@
+work_*/
+*.mp4
+*.mov
+*.MOV
+*.wav
+*.aiff
+*.jpg
+*.cube
+__pycache__/
+.DS_Store
+tests/out/
