@@ -37,7 +37,8 @@ function parseWords(s) {
 // Logo sting: straight over the footage (transparent, no field). A soft shadow keeps the white lettering readable on
 // bright shots without a box; everything folds back into the hairlines at the end.
 function sting(ctx, t, p, A, o) {
-  const tagline = p.tagline || COPY.tagline, url = p.url ?? COPY.url, P = PORTRAIT;
+  // no website line over the footage (it does not read on grass); the end card carries it. p.url adds one back.
+  const tagline = p.tagline || COPY.tagline, url = p.url || null, P = PORTRAIT;
   const cx = W / 2, cy = P ? 800 : 400, s0 = P ? 1 : 0.72, pw = 720 * s0, ph = 640 * s0, hw = P ? 380 : 330;
   const a = snap(t, 0.1, 0.27), m1 = 0.37;
   const b = snap(t, m1 + HOLD, 0.23), m2 = m1 + HOLD + 0.23;
