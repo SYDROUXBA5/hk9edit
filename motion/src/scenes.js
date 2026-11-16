@@ -43,6 +43,13 @@ function sting(ctx, t, p, A, o) {
   const b = snap(t, m1 + HOLD, 0.23), m2 = m1 + HOLD + 0.23;
   const r = reward(t, m2, 0.9), out = 1 - snap(t, o.dur - 0.45, 0.3);
   if (out <= 0) return;
+  // no box, no colour: the footage just dims softly around the logo and the line under it, so white stays readable
+  const gy = cy + (P ? 150 : 90), gl = Math.min(1, a * 1.4) * out;
+  if (gl > 0) {
+    const g = ctx.createRadialGradient(cx, gy, 0, cx, gy, P ? 620 : 520);
+    g.addColorStop(0, `rgba(0,0,0,${0.5 * gl})`); g.addColorStop(0.55, `rgba(0,0,0,${0.3 * gl})`); g.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.save(); ctx.fillStyle = g; ctx.fillRect(0, 0, W, H); ctx.restore();
+  }
   ctx.save(); ctx.shadowColor = 'rgba(0,0,0,0.6)'; ctx.shadowBlur = 30; ctx.shadowOffsetY = 4;
   const hh = logoWindow(ctx, A.logo, cx, cy, pw, ph, b * out, s0 * (1.04 - 0.04 * r));
   box(ctx, cx - hw * a * out, cy - hh - 4, 2 * hw * a * out, 4, C.sky);
