@@ -10,8 +10,8 @@ All graphics are code in `motion/src/scenes.js`, drawn for 9:16 or 16:9 by headl
   `#0480b7`; amber `#f4ab12` from the logo, on one element per graphic only.
 - Text on a sky (light-blue) fill is always WHITE: name-tag role strip, programme highlight, LEARN MORE button, AFTER
   tag, caption word box.
-- The logo is transparent with white lettering; the logo sting draws it straight over the footage (no field,
-  a soft shadow for legibility); the end card shows it on the navy field. Never on a white box.
+- The logo is transparent with white lettering. The logo sting and the end card draw straight over the footage (no
+  navy field, no box): soft shadows and a faint dark falloff keep them readable. Never on a white box.
 - No paw prints, bones, cartoon dogs or other literal dog props.
 - Type: Raleway (lining figures). Motion: "mark, then reward": a move snaps to a hard stop, holds 4 frames while a
   white dash fires on the left rail, then the next element eases in.
@@ -27,7 +27,7 @@ under it); an overlay sits on the footage. A card shorter than its base length p
 | id | kind | base | words (keyword arguments) | when |
 |---|---|---|---|---|
 | `logo-sting` | overlay | 3 s | `tagline=[...]` (no website line: the end card has it) | automatic after the cold open (regular); keep footage under it |
-| `end-card` | card | 4 s | `cta`, `url`, `phone`, `handle` (set via `END_CARD_WORDS`) | automatic at the end |
+| `end-card` | overlay | 4 s | `cta`, `url`, `phone`, `handle` (set via `END_CARD_WORDS`) | automatic at the end, over the last shot (runs to `e.TOTAL`) |
 | `lower-third` | overlay | 4 s | `name`, `role` | the first on-camera line; 4-5 s |
 | `title` | overlay | 2.5 s | `eyebrow`, `text` | where the story turns ("HANDLER SCHOOL"); top left |
 | `quote` | card | 7 s | `text`, `highlight` (last N words in sky), `by`, `src` | the strongest proof line, while it is spoken; at most one |

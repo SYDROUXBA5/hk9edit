@@ -102,8 +102,7 @@ WORDS = "INTERVIEW_words.csv"
                 e.S("B1", "BROLL_B", 2.0, e.nxt("why"), [(2.0, .5, .5)], zk=[(2.0, 1.2)], hold=0.4,
                     h=dict(fit="contain", zk=[(2.0, 1.0)])),
                 e.B("QUOTE", e.nxt("proof")),
-                e.S("B2", "BROLL_A", 6.0, e.PICTURE_END, [(6.0, .5, .5)], punch=.05, whip="i"),
-                e.B("END", e.TOTAL),
+                e.S("B2", "BROLL_A", 6.0, e.TOTAL, [(6.0, .5, .5)], punch=.05, whip="i"),
             ]
         def graphics(e):
             return [e.G("lower-third", e.start("i1") + 0.2, 3.5, name="Sam Tester", role="Detection dog trainer"),
@@ -131,8 +130,7 @@ WORDS = "INTERVIEW_words.csv"
                 e.S("H1", "BROLL_A", 2.0, 2.5, [(2.0, .5, .5)], punch=.06),
                 e.S("W1", "BROLL_B", 1.0, 4.5, [(1.0, .5, .5)], whip="i"),
                 e.S("W2", "BROLL_A", 6.0, 6.0, [(6.0, .5, .5)], sound=None),
-                e.S("R1", "BROLL_B", 5.0, e.PICTURE_END, [(5.0, .5, .5)]),
-                e.B("END", e.TOTAL),
+                e.S("R1", "BROLL_B", 5.0, e.TOTAL, [(5.0, .5, .5)]),
             ]
         def graphics(e):
             return [e.G("title", 6.05, 2.2, eyebrow="Detection", text="The find")]

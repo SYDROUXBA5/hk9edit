@@ -24,7 +24,7 @@ FPS = 30
 SIZE = {"vertical": (1080, 1920), "horizontal": (1920, 1080)}
 SCENES = {  # id: (base seconds, card) -- keep in step with motion/src/scenes.js
     "logo-sting": (3, False), "kinetic": (6, True), "stat": (6, True), "before-after": (8, True), "steps": (10, True),
-    "quote": (7, True), "programs": (10, True), "dates": (6, True), "end-card": (4, True),
+    "quote": (7, True), "programs": (10, True), "dates": (6, True), "end-card": (4, False),
     "lower-third": (4, False), "title": (2.5, False), "hook": (2.5, False), "captions": (3, False)}
 # Footage windows of the before/after card [x, y, w, h] (same numbers as baRects() in scenes.js)
 BA_RECTS = {"vertical": [(60, 390, 960, 520), (60, 980, 960, 520)], "horizontal": [(150, 210, 780, 640), (990, 210, 780, 640)]}

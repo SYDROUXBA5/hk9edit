@@ -13,7 +13,7 @@ the Highland graphics added. Reproduce its feel; the numbers are starting points
 | the work | 8-20 s | the training itself, quick cuts (1.5-3 s), captions telling what we see |
 | the result | 3-8 s | the strongest moment, held a little longer; the music's lift |
 | close | 2-4 s | reward, dog and handler |
-| end card | 4 s | logo, LEARN MORE, highlandcanine.com, phone and handle (automatic) |
+| end card | 4 s | over the last shot: logo, LEARN MORE, highlandcanine.com, phone and handle (automatic) |
 
 20-45 s in all. No logo sting at the start.
 
@@ -25,7 +25,7 @@ the Highland graphics added. Reproduce its feel; the numbers are starting points
 | logo sting | 3 s | the Highland logo opens straight over the action (automatic; keep footage under it) |
 | the work | 15-50 s | parts with a title each ("THE SEARCH"), shots 2-4 s, cards where they help (steps, stat) |
 | the result | 5-10 s | the strongest moment |
-| close + end card | 3 s + 4 s | reward; the end card |
+| close + end card | 3 s + 4 s | reward; the end card plays over the last shot |
 
 30-90 s in all. Captions only if asked.
 

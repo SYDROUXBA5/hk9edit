@@ -449,7 +449,7 @@ def graphics_events(words=None, runs=None):
         p = dict(lines=HOOK["lines"], y=HOOK.get("y", {})); ht = hook_times(HOOK["lines"], hw, t_start) if hw else None
         if ht: p["times"] = ht
         ev.append(G("hook", t_start, HOOK_END - t_start, **p))
-    blocked = [(e["t0"], e["t0"] + e["dur"]) for e in ev if gfx.SCENES[e["scene"]][1] or e["scene"] == "hook"]
+    blocked = [(e["t0"], e["t0"] + e["dur"]) for e in ev if gfx.SCENES[e["scene"]][1] or e["scene"] in ("hook", "logo-sting", "end-card")]
     avoid = [[e["t0"], e["t0"] + e["dur"]] for e in ev if e["scene"] == "lower-third"]
     if CAPTIONS and VOICE and words is not None:
         ev.append(G("captions", 0.0, TOTAL, chunks=caption_chunks(words, blocked, runs), avoid=avoid, y=CAPTION_Y))

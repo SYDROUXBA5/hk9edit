@@ -48,7 +48,8 @@ SHOT_SOUND = 0.0                      # each shot's own sound under the music, d
 def shots(e):
     """The shots in order; each starts where the last ended (output times in seconds).
       e.S(label, clip, clip_in, OUTPUT end, keys, zk=, punch=, whip=, line=, fit=, sound=)
-      e.B(label, OUTPUT end)       black, under a full-screen card (quote, steps, stat ...) and the end card
+      e.B(label, OUTPUT end)       black, under a full-screen card (quote, steps, stat ...); the logo sting and the end card
+                                   are transparent: keep footage under them (the last shot runs to e.TOTAL)
       e.SPLIT(label, (clip, in, keys), (clip, in, keys), OUTPUT end)   the two windows of a before-after card
     Useful times: e.SEC[part], e.nxt(part) (start of the next part), e.STING (start, end), e.PICTURE_END, e.TOTAL.
       keys  [(clip_t, cx, cy)] where the DOG is in the clip (0-1); the crop follows it smoothly
@@ -63,8 +64,8 @@ def shots(e):
             h=dict(zk=[(1.5, 1.0)], keys=[(1.5, .48, .55)])),   # vertical clip: tighter in 9:16, its own crop in 16:9
         # ... one action shot per beat of the story ...
         e.S("R1  the alert", "IMG_0005", 3.0, e.SEC["result"] + 2.5, [(3.0, .55, .58)], punch=.06),
-        e.S("C1  reward, dog and handler", "IMG_0007", 11.2, e.PICTURE_END, [(11.2, .47, .55)], zk=[(11.2, 1.0), (16.2, 1.08)]),
-        e.B("END end card", e.TOTAL),
+        e.S("C1  reward, dog and handler; the end card plays over it", "IMG_0007", 11.2, e.TOTAL, [(11.2, .47, .55)],
+            zk=[(11.2, 1.0), (20.2, 1.10)]),
     ]
 
 

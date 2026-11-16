@@ -319,27 +319,39 @@ function dates(ctx, t, p) {
   }
 }
 
+// End card: straight over the last shot (transparent, no field). A soft dark falloff behind the block and shadows on
+// every element keep it readable on bright footage. It folds back at the end, so a looping reel restarts cleanly.
 function endCard(ctx, t, p, A, o) {
   const E = { ...COPY.end, ...p }, P = PORTRAIT, DUR = o.dur, OUT = DUR - 0.7;
   const cx = W / 2, cy = P ? 720 : 330, s0 = P ? 1 : 0.6, pw = 720 * s0, ph = 640 * s0, hw = P ? 380 : 300;
-  field(ctx, t, { loop: DUR });
-  const mO = 0.38, open = snap(t, 0.15, 0.23) * (1 - snap(t, OUT + 0.3, 0.2));
+  const by = P ? 1140 : 590, bw = P ? 560 : 480, bh = P ? 116 : 96, mO = 0.38, mB = mO + HOLD + 0.2;
+  const dim = Math.min(1, t / 0.3) * (1 - prog(t, OUT + 0.25, 0.4));
+  if (dim > 0) {
+    const gy = (cy - ph / 2 + by + bh + (P ? 230 : 190)) / 2, R = P ? 900 : 700;
+    const g = ctx.createRadialGradient(cx, gy, 0, cx, gy, R);
+    g.addColorStop(0, `rgba(0,0,0,${0.55 * dim})`); g.addColorStop(0.6, `rgba(0,0,0,${0.32 * dim})`); g.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.save(); ctx.fillStyle = g; ctx.fillRect(0, 0, W, H); ctx.restore();
+  }
+  const open = snap(t, 0.15, 0.23) * (1 - snap(t, OUT + 0.3, 0.2));
+  ctx.save(); ctx.shadowColor = 'rgba(0,0,0,0.6)'; ctx.shadowBlur = 30; ctx.shadowOffsetY = 4;
   const hh = logoWindow(ctx, A.logo, cx, cy, pw, ph, open, s0);
-  box(ctx, cx - hw, cy - hh - 4, 2 * hw, 4, C.sky); box(ctx, cx - hw, cy + hh, 2 * hw, 4, C.sky);
-  const by = P ? 1140 : 590, bw = P ? 560 : 480, bh = P ? 116 : 96, mB = mO + HOLD + 0.2;
+  if (open > 0) { box(ctx, cx - hw, cy - hh - 4, 2 * hw, 4, C.sky); box(ctx, cx - hw, cy + hh, 2 * hw, 4, C.sky); }
   const bo = snap(t, mO + HOLD, 0.2) * (1 - snap(t, OUT + 0.12, 0.16));
   if (bo > 0) {
+    ctx.beginPath(); ctx.rect(cx - (bw / 2) * bo - 40, by - 40, bw * bo + 80, bh + 80); ctx.clip();
+    box(ctx, cx - (bw / 2) * bo, by, bw * bo, bh, C.sky);
+  }
+  ctx.restore();
+  if (bo > 0) {
     ctx.save(); ctx.beginPath(); ctx.rect(cx - (bw / 2) * bo, by, bw * bo, bh); ctx.clip();
-    box(ctx, cx - bw / 2, by, bw, bh, C.sky);
-    text(ctx, up(E.cta), cx, by + bh / 2 + (P ? 15 : 13), { size: P ? 42 : 36, track: 7, align: 'center' });
+    text(ctx, up(E.cta), cx, by + bh / 2 + (P ? 15 : 13), { size: P ? 42 : 36, track: 7, align: 'center' });   // white on light blue
     ctx.restore();
   }
   const out = 1 - outCubic(prog(t, OUT, 0.2)), u = snap(t, 1.15, 0.15) * (1 - snap(t, OUT, 0.15));
   box(ctx, cx - 48 * u, by + bh + (P ? 62 : 46), 96 * u, 8, C.amber);
-  soft(ctx, E.url ?? COPY.url, cx, by + bh + (P ? 150 : 122), reward(t, mB, 0.7) * out, { size: P ? 54 : 48, align: 'center', track: 1 });
+  soft(ctx, E.url ?? COPY.url, cx, by + bh + (P ? 150 : 122), reward(t, mB, 0.7) * out, { size: P ? 54 : 48, align: 'center', track: 1, shadow: 1 });
   const contact = [E.phone, E.handle].filter(Boolean).join('   ·   ');
-  if (contact) soft(ctx, contact, cx, by + bh + (P ? 216 : 178), reward(t, mB + 0.15, 0.7) * out, { size: 30, weight: 600, color: C.sky, track: 2, align: 'center' });
-  mark(ctx, cy, t - mO); mark(ctx, by + bh / 2, t - mB);
+  if (contact) soft(ctx, contact, cx, by + bh + (P ? 216 : 178), reward(t, mB + 0.15, 0.7) * out, { size: 30, weight: 700, track: 2, align: 'center', shadow: 1 });
 }
 
 // ------------------------------------------------------------------ OVERLAYS (on the footage)
@@ -480,7 +492,7 @@ export const SCENES = [
   { id: 'quote', base: 7, card: true, draw: quote },
   { id: 'programs', base: 10, card: true, draw: programs },
   { id: 'dates', base: 6, card: true, draw: dates },
-  { id: 'end-card', base: 4, card: true, draw: endCard },
+  { id: 'end-card', base: 4, card: false, draw: endCard },
   { id: 'lower-third', base: 4, card: false, draw: lower },
   { id: 'title', base: 2, card: false, draw: title },
   { id: 'hook', base: 1.5, card: false, draw: hook },

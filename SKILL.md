@@ -70,7 +70,7 @@ judgement calls (which moment, which shot, which text) yourself.
    any shape.
 2. **The story, in parts** (`PARTS = [(name, output start)]`): social: hook -> the work -> the result -> close;
    regular: cold open -> the work -> the result (the strongest moment) -> close. Each part is a few shots on one
-   idea. `LENGTH` = seconds of picture before the end card.
+   idea. `LENGTH` = seconds of picture before the end card; the end card (4 s) then plays over the last shot.
 3. **Cut in rhythm.** Shot lengths in steady steps (multiples of 0.5 s: social 1.5-3 s, regular 2-4 s), longer on
    the result. The music later bends its tempo so the cuts fall on its beats and adds a hit on every cut.
    The rules from the approved film: ACTION over set-up (never harnessing, never a frame the dog has left), each
@@ -98,6 +98,8 @@ judgement calls (which moment, which shot, which text) yourself.
    - a `title` at the start of a part ("THE FIND"), a `steps` card for a sequence, a `stat` card for a number the
      user gives, a `kinetic` statement between parts, a `lower-third` naming the dog or handler (ask the name)
    - full-screen cards hide the footage: put an `e.B(...)` black shot under them and keep footage between cards
+   - the logo sting and the end card are transparent: keep footage under them; the last shot runs to `e.TOTAL`
+     (choose a calm, well-lit final shot: the end card's logo, button and website sit over it)
    - text height: `CAPTION_Y = {"vertical": 0.72, "horizontal": 0.86}` moves the captions, `HOOK = dict(..., y={...})`
      the hook, when they would cover the dog (fractions of the frame height)
 
