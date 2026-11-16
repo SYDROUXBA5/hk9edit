@@ -4,8 +4,28 @@ import numpy as np
 from scipy.io import wavfile
 from scipy.signal import lfilter, resample_poly
 
-WHISPER_CLI = os.environ.get("WHISPER_CLI", "whisper-cli")
-WHISPER_MODEL = os.path.expanduser(os.environ.get("WHISPER_MODEL", "~/.whisper-models/ggml-small.en.bin"))
+def _whisper_cli():
+    """WHISPER_CLI, whisper-cli on PATH, or a whisper-cli.exe unzipped into ~/whisper or C:\\whisper (the Windows setup)."""
+    import shutil
+    if os.environ.get("WHISPER_CLI"): return os.environ["WHISPER_CLI"]
+    if shutil.which("whisper-cli"): return shutil.which("whisper-cli")
+    for base in (os.path.join(os.path.expanduser("~"), "whisper"), r"C:\whisper"):
+        for root, _dirs, files in (os.walk(base) if os.path.isdir(base) else []):
+            if "whisper-cli.exe" in files: return os.path.join(root, "whisper-cli.exe")
+    return "whisper-cli"
+
+
+def _whisper_model():
+    """WHISPER_MODEL, else the best English model in ~/.whisper-models (small, then base, then tiny)."""
+    if os.environ.get("WHISPER_MODEL"): return os.path.expanduser(os.environ["WHISPER_MODEL"])
+    d = os.path.join(os.path.expanduser("~"), ".whisper-models")
+    for m in ("small", "base", "medium", "tiny"):
+        if os.path.isfile(os.path.join(d, f"ggml-{m}.en.bin")): return os.path.join(d, f"ggml-{m}.en.bin")
+    return os.path.join(d, "ggml-small.en.bin")
+
+
+WHISPER_CLI = _whisper_cli()
+WHISPER_MODEL = _whisper_model()
 FILLER_PROMPT = "Um, uh, so, uh, we, uh, you know, uh, went up there and, um, uh, yeah."
 FILLERS = {"uh", "um", "uhm", "ah", "er", "erm", "hmm"}
 

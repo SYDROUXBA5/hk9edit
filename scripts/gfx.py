@@ -86,6 +86,13 @@ class _Handler(http.server.SimpleHTTPRequestHandler):
         self.send_response(204); self.send_header("Content-Length", "0"); self.end_headers()
 
 
+class _Server(http.server.ThreadingHTTPServer):
+    daemon_threads = True
+    def handle_error(self, request, client_address):      # the browser closing its connection is normal, not an error
+        if isinstance(sys.exc_info()[1], (ConnectionResetError, ConnectionAbortedError, BrokenPipeError)): return
+        super().handle_error(request, client_address)
+
+
 def _blank_png(w, h):
     from PIL import Image
     b = io.BytesIO(); Image.new("RGBA", (w, h), (0, 0, 0, 0)).save(b, "PNG"); return b.getvalue()
@@ -104,7 +111,7 @@ def render(job, outdir, fill_blanks=True, quiet=False, workers=None):
     jobs = [dict(job, frames=todo[j * size:(j + 1) * size]) for j in range(k)]
     if job.get("times"): jobs = [dict(job)]
     jobs = [j for j in jobs if j["frames"]] or [dict(job, frames=[])]
-    srv = http.server.ThreadingHTTPServer(("127.0.0.1", 0), _Handler)
+    srv = _Server(("127.0.0.1", 0), _Handler)
     srv.jobs = jobs; srv.state = st = dict(out=outdir, drawn=set(), dups={}, done=0, error=None, last=time.time(), lock=threading.Lock())
     threading.Thread(target=srv.serve_forever, daemon=True).start()
     exe, procs, profs, t0 = find_browser(), [], [], time.time()
@@ -187,7 +194,7 @@ def main():
                 if not os.path.isfile(p): continue
                 im = Image.open(p).convert("RGB").resize((tw_, th_)); x, y = 12 + (k % cols) * (tw_ + 12), 12 + (k // cols) * (th_ + 40)
                 sheet.paste(im, (x, y)); d.text((x, y + th_ + 8), sid, fill=(220, 220, 220))
-            sheet.save(out, quality=90); print("->", out)
+            os.makedirs(os.path.dirname(os.path.abspath(out)), exist_ok=True); sheet.save(out, quality=90); print("->", out)
         finally:
             shutil.rmtree(tmp, ignore_errors=True)
         return
@@ -197,7 +204,7 @@ def main():
     alpha = "--alpha" in a; n = round(dur * FPS); tmp = tempfile.mkdtemp(prefix="hk9scene_")
     try:
         render(dict(W=W, H=H, n=n, fps=FPS, events=[dict(scene=sid, t0=0, dur=dur, p=params)], preview=not alpha), tmp)
-        encode(tmp, out, alpha=alpha); print("->", out)
+        os.makedirs(os.path.dirname(os.path.abspath(out)), exist_ok=True); encode(tmp, out, alpha=alpha); print("->", out)
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
 

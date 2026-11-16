@@ -16,46 +16,29 @@ no captions, 60-105 s.
 ## Install on Windows (once)
 
 1. Install Claude Code (desktop app or terminal) from https://claude.com/claude-code and sign in.
-2. Open **PowerShell** and run these one at a time:
+2. Open **PowerShell** and run:
 
    ```powershell
-   winget install --id Gyan.FFmpeg -e
-   winget install --id Python.Python.3.12 -e
    winget install --id Git.Git -e
    ```
 
-   Close PowerShell, open it again, then:
-
-   ```powershell
-   py -m pip install numpy scipy pillow
-   ```
-
-3. Speech-to-text (Whisper, runs on your PC; nothing is uploaded):
-   - Download **whisper-bin-x64.zip** from https://github.com/ggml-org/whisper.cpp/releases (the latest release,
-     under "Assets") and unzip it to `C:\whisper`.
-   - Tell the skill where it is, and download the English model (about 470 MB):
-
-   ```powershell
-   $exe = (Get-ChildItem C:\whisper -Recurse -Filter whisper-cli.exe | Select-Object -First 1).FullName
-   [Environment]::SetEnvironmentVariable("WHISPER_CLI", $exe, "User")
-   New-Item -ItemType Directory -Force "$env:USERPROFILE\.whisper-models" | Out-Null
-   Invoke-WebRequest https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-small.en.bin -OutFile "$env:USERPROFILE\.whisper-models\ggml-small.en.bin"
-   ```
-
-4. The skill itself:
+3. Close PowerShell, open it again, then run these two lines:
 
    ```powershell
    git clone https://github.com/SYDROUXBA5/hk9edit "$env:USERPROFILE\.claude\skills\hk9edit"
    ```
 
-5. Close and reopen PowerShell, then check everything:
-
    ```powershell
-   py "$env:USERPROFILE\.claude\skills\hk9edit\scripts\setup_check.py"
+   powershell -ExecutionPolicy Bypass -File "$env:USERPROFILE\.claude\skills\hk9edit\install_windows.ps1"
    ```
 
-   Every line should say OK. The graphics are drawn by Microsoft Edge, which every Windows PC already has
-   (Google Chrome works too).
+   The installer adds ffmpeg and Python, the Python packages, Whisper (speech-to-text that runs on your PC; nothing
+   is uploaded) and its English model (about 470 MB), then checks everything. Every line should end up OK. If it
+   stops, run the same line again after closing and reopening PowerShell; it keeps what is already installed.
+4. Restart Claude Code so it picks up the new skill.
+
+The graphics are drawn by Microsoft Edge, which every Windows PC already has (Google Chrome works too). If `winget`
+is missing, install "App Installer" from the Microsoft Store first.
 
 ## Install on a Mac
 

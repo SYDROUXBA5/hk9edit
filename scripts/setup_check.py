@@ -40,13 +40,13 @@ if ff:
     report("libx264" in encs, "ffmpeg encoder libx264", "install a full ffmpeg build (" + fix_ff + ")")
 
 # Whisper (speech to text)
-cli = os.environ.get("WHISPER_CLI", "whisper-cli")
-model = os.path.expanduser(os.environ.get("WHISPER_MODEL", "~/.whisper-models/ggml-small.en.bin"))
-report(bool(shutil.which(cli)), f"whisper-cli ({cli})",
-       "Windows: download whisper-bin-x64.zip from https://github.com/ggml-org/whisper.cpp/releases, unzip it, and add "
-       "the folder holding whisper-cli.exe to PATH (or set WHISPER_CLI to the .exe)" if WIN else "brew install whisper-cpp")
+sys.path.insert(0, HERE)
+from common import WHISPER_CLI as cli, WHISPER_MODEL as model
+report(bool(shutil.which(cli) or os.path.isfile(cli)), f"whisper-cli ({cli})",
+       "run install_windows.ps1 (README.md), or set WHISPER_CLI to whisper-cli.exe" if WIN else "brew install whisper-cpp")
 report(os.path.isfile(model), f"Whisper model {model}",
-       "download https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-small.en.bin into that folder")
+       "download https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-small.en.bin into ~/.whisper-models"
+       + (" (install_windows.ps1 does it)" if WIN else ""))
 
 # Browser + one test graphic
 sys.path.insert(0, HERE)
