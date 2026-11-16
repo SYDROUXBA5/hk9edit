@@ -16,7 +16,6 @@ for _s in (sys.stdout, sys.stderr):
     except Exception: pass
 
 VIDEO = (".mov", ".mp4", ".m4v", ".avi", ".mkv")
-TW, TH = 320, 180
 
 
 def probe(p):
@@ -31,17 +30,21 @@ def probe(p):
 def main(src, out):
     os.makedirs(out, exist_ok=True)
     clips = sorted(p for p in glob.glob(os.path.join(src, "*")) if p.lower().endswith(VIDEO))
-    lines, jobs = [], []
+    lines, jobs, tall = [], [], 0
     for p in clips:
         d, w, h, rot, trc, audio = probe(p)
         hdr = {"arib-std-b67": "HLG", "smpte2084": "PQ"}.get(trc, "SDR")
-        lines.append(f"{os.path.basename(p):24s} {d:7.1f}s  {w}x{h}  rot {rot:4d}  {hdr}  {'audio' if audio else 'no audio'}")
+        pw, ph = (h, w) if rot % 180 else (w, h)                 # the size it plays at (rotation applied)
+        tall += ph > pw
+        lines.append(f"{os.path.basename(p):24s} {d:7.1f}s  plays {pw}x{ph} ({'vertical' if ph > pw else 'landscape'})  "
+                     f"stored {w}x{h} rot {rot:4d}  {hdr}  {'audio' if audio else 'no audio'}")
         if d < 0.5: continue
         n = max(2, min(12, round(d / 4.5)))
         jobs += [(p, d * (i + 0.5) / n, rot) for i in range(n)]
     open(os.path.join(out, "inventory.txt"), "w", encoding="utf-8").write("\n".join(lines) + "\n")
     print("\n".join(lines))
 
+    TW, TH = (180, 320) if tall > len(clips) / 2 else (320, 180)   # portrait tiles when most clips are vertical
     def grab(j):
         p, t, rot = j; o = os.path.join(out, f"t_{os.path.basename(p)}_{t:.1f}.jpg")
         subprocess.run(["ffmpeg", "-v", "error", "-y", "-ss", f"{t:.2f}", "-i", p, "-frames:v", "1",

@@ -3,10 +3,10 @@
 
 Usage:  python3 qa.py VIDEO WORK_DIR [OUT.jpg]
   VIDEO     a rendered mp4 (vertical or horizontal)
-  WORK_DIR  the build's WORK folder (holds voice.wav)
-Prints: size, duration, integrated loudness (target -16 LUFS) and true peak, the plain Whisper transcript of the
-voice track (compare with the edit's lines), filler candidates (fillers.py scan), high-pitch runs in the voice track
-(the interviewer must never be audible), and writes a strip of one frame every ~4 s to OUT.jpg (default: next to VIDEO).
+  WORK_DIR  the build's WORK folder
+Prints: size, duration, integrated loudness (target -14 LUFS social, -16 regular) and true peak (under -1 dBTP), and
+writes a strip of one frame every ~4 s to OUT.jpg (default: in WORK_DIR). Interview edits (WORK_DIR holds voice.wav)
+also get the Whisper transcript of the voice track, filler candidates and high-pitch runs (the interviewer check).
 """
 import json, os, subprocess, sys, tempfile
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -18,7 +18,7 @@ sys.stdout.reconfigure(line_buffering=True)            # keep our lines in order
 
 if len(sys.argv) < 3: sys.exit(__doc__)
 video, work = sys.argv[1], sys.argv[2]
-out = sys.argv[3] if len(sys.argv) > 3 else os.path.splitext(video)[0] + "_qa.jpg"
+out = sys.argv[3] if len(sys.argv) > 3 else os.path.join(work, os.path.splitext(os.path.basename(video))[0] + "_qa.jpg")
 here = os.path.dirname(os.path.abspath(__file__))
 
 info = json.loads(subprocess.run(["ffprobe", "-v", "error", "-show_entries", "format=duration:stream=width,height,codec_name,color_transfer",

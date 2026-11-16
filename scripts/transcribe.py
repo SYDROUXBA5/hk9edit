@@ -3,6 +3,8 @@
 
 Usage:  python3 transcribe.py INTERVIEW_CLIP OUT_DIR            -> OUT_DIR/<clip>.txt (+ .srt)  segment timestamps
         python3 transcribe.py INTERVIEW_CLIP OUT_DIR --words    -> also OUT_DIR/<clip>_words.csv  one word per row
+        python3 transcribe.py CLIP OUT_DIR --range 3.2-4.1 [A-B ...]   Whisper on short windows only (padded with silence):
+                                                                       is anyone talking under a shot or a bark?
 
 Env: WHISPER_MODEL (default ~/.whisper-models/ggml-small.en.bin), WHISPER_CLI (default whisper-cli).
 Use the transcript to find answers and rough times; place every cut from the level envelope, not from Whisper's
@@ -15,6 +17,14 @@ setup_console()
 
 if len(sys.argv) < 3: sys.exit(__doc__)
 src, out = sys.argv[1], sys.argv[2]; os.makedirs(out, exist_ok=True)
+if "--range" in sys.argv:                       # one short window, padded with silence: is anyone talking in it?
+    from common import load_mono, snippet_text
+    x = load_mono(src)
+    for r in sys.argv[sys.argv.index("--range") + 1:]:
+        if r.startswith("--"): break
+        a_, b_ = (float(v) for v in r.split("-"))
+        print(f"{a_:.2f}-{b_:.2f}: {snippet_text(x, 48000, a_, b_, out) or '(no words)'}")
+    sys.exit()
 stem = os.path.join(out, os.path.splitext(os.path.basename(src))[0])
 wav = stem + "_16k.wav"
 subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", src, "-vn", "-ac", "1", "-ar", "16000", wav], check=True)

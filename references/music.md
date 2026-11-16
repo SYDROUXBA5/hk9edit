@@ -51,5 +51,7 @@ Offer 3-4 that fit THIS edit, best first, one line each on why. Typical picks:
 
 Every change: `python scripts/build.py edit.py --audio` (seconds; the picture is kept).
 
-What was measured (I cannot listen): bus balance (low 60-250 Hz and mid 250-2000 Hz within a few dB, highs about
--16 dB), loudness per part, voice-over-music ratio. Say so when reporting.
+`build.py` prints a music line after every sound build: the tempo range, how many cuts landed on the beat, and the
+balance of the music (low 60-250 Hz against mid 250-2000 Hz: within about +4 dB, up to +8 for tactical and
+cinematic, whose chords and drums sit at 150-250 Hz; their sub-bass under 150 Hz is already shelved 5 dB down).
+Report those numbers and say plainly that they were measured, not heard.

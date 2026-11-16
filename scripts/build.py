@@ -46,7 +46,7 @@ ORIENTS = [o for o in ("vertical", "horizontal") if f"--{o}" in sys.argv] or lis
 assert ORIENTS and set(ORIENTS) <= {"vertical", "horizontal"}, f"FORMATS must be vertical and/or horizontal, not {ORIENTS}"
 
 FOOTAGE, OUTPUT = E.FOOTAGE, E.OUTPUT
-OUT_DIR = opt("OUT_DIR", FOOTAGE)
+OUT_DIR = opt("OUT_DIR", os.path.dirname(EDIT_PATH))   # default: next to the edit file, never the footage folder
 WORK = os.path.abspath(os.environ.get("WORK") or os.path.join(os.path.dirname(EDIT_PATH), "work_" + os.path.splitext(os.path.basename(EDIT_PATH))[0]))
 FPS, SR, XF = 30, 48000, 0.02                    # frame rate, audio rate, splice crossfade
 VOICE = bool(opt("INTERVIEW", None))             # False: a footage-only edit (no voice): natural sound, on-screen text, music
@@ -62,6 +62,7 @@ PARTS = opt("PARTS", [])                         # footage-only: [(part, output 
 LENGTH = opt("LENGTH", None)                     # footage-only: seconds of picture before the end card
 SHOT_SOUND = opt("SHOT_SOUND", 0.0)              # footage-only: each shot's own sound, dB re -26 dBFS (None: silent)
 CAPTION_TEXT = opt("CAPTION_TEXT", [])           # footage-only captions: [(start, end, "short line")]
+CAPTION_Y = opt("CAPTION_Y", {})                 # caption centre as a fraction of the height, e.g. {"vertical": 0.72, "horizontal": 0.86}
 CUTS = sorted(opt("CUTS", []))
 COLD = opt("COLD", None)                         # natural-sound cold open (regular), or None
 HOOK = opt("HOOK", None)                         # social: dict(lines=[...]) laid over the first section
@@ -133,13 +134,16 @@ def nxt(name):
     """Output time at which the section after `name` begins (the voice end for the last one)."""
     i = ORDER.index(name); return SEC[ORDER[i + 1]] if i + 1 < len(ORDER) else VOICE_END
 
-def S(label, clip_, cin, tend, keys, zk=None, punch=0.0, whip="", line="", fit="cover", sound=0.0):
+def S(label, clip_, cin, tend, keys, zk=None, punch=0.0, whip="", line="", fit="cover", sound=0.0, hold=0.46, v=None, h=None):
     """A shot: label (first word = id), clip, clip in-point, OUTPUT time the shot ends, subject keys [(clip_t, cx, cy)],
     zoom keys [(clip_t, z)], punch = extra zoom that decays in 0.1 s after the cut, whip = "i"/"o" blur in/out,
     fit = "cover" (fill the frame, crop around the subject) or "contain" (whole clip over a blurred copy of itself),
-    sound = footage-only edits: this shot's own sound in dB re SHOT_SOUND (None: silent)."""
+    sound = footage-only edits: this shot's own sound in dB re SHOT_SOUND (None: silent),
+    hold = the height on screen (0-1) where the subject is held (default 0.46; lower it to keep the dog clear of captions),
+    v= / h= = framing for one format only, e.g. h=dict(zk=[(cin, 1.0)], keys=[...]) when a vertical clip needs a
+    different crop in 16:9 (any of keys, zk, punch, whip, fit, hold)."""
     return dict(kind="clip", label=label, clip=clip_, cin=cin, tend=tend, keys=keys, zk=zk or [(cin, 1.0)], punch=punch,
-                whip=whip, line=line, fit=fit, sound=sound)
+                whip=whip, line=line, fit=fit, sound=sound, hold=hold, v=v or {}, h=h or {})
 def B(label, tend, line=""):
     """Black picture, under a full-screen graphic (logo sting, end card, quote card...)."""
     return dict(kind="black", label=label, clip=None, cin=0.0, tend=tend, keys=[(0.0, .5, .5)], zk=[(0.0, 1.0)], punch=0.0,
@@ -175,8 +179,8 @@ def cam(cin, keys, zk, dur, punch):
 def prepare(raw, orient):
     shots, f0 = [], 0
     for s in raw:
-        sh = dict(s)
-        if orient == "horizontal" and sh["kind"] == "clip" and clip(sh["clip"]) == INTERVIEW:   # 16:9 already frames him
+        sh = dict(s); sh.update(sh.get("v" if orient == "vertical" else "h") or {})        # per-format framing
+        if orient == "horizontal" and sh["kind"] == "clip" and clip(sh["clip"]) == INTERVIEW and not sh.get("h"):
             sh["zk"] = [(t, max(1.0, z - H_ZOOM_BACK)) for t, z in sh["zk"]]
         f1 = round(sh["tend"] * FPS); sh["n"] = f1 - f0; sh["t0"] = f0 / FPS; sh["dur"] = sh["n"] / FPS; f0 = f1
         assert sh["n"] > 0, f"shot {sh['label']} has no frames (ends before the previous one)"
@@ -221,10 +225,10 @@ def to_rgb(trc):
         return "scale=in_color_matrix=bt2020:in_range=tv,format=gbrp10le,lut3d=file=pq2sdr.cube:interp=tetrahedral,format=gbrp"
     return "scale=in_color_matrix=bt709,format=gbrp"
 
-def framing(name, path, W, H, whip="", dur=0.0):
+def framing(name, path, W, H, whip="", dur=0.0, hold=0.46):
     """Scale + crop chain that fills W x H from the clip, following the camera path."""
     (sw, sh_), trc = shown(name); s = max(W / sw, H / sh_)
-    ts, cx, cy, z = path; TY = 0.46 * H                 # TY: screen height at which the subject (cy) is held
+    ts, cx, cy, z = path; TY = hold * H                 # TY: screen height at which the subject (cy) is held
     ex, ey, ez = pw(ts, cx, 0.0008), pw(ts, cy, 0.0008), pw(ts, z, 0.0015)
     blur = ""
     if "i" in whip: blur += "gblur=sigma=42:sigmaV=0:steps=1:enable='lt(t,0.085)',"
@@ -258,7 +262,7 @@ def shot_graph(sh, k, W, H, orient, sc=1.0):
             f"[q{k}]scale={W}:{H}:force_original_aspect_ratio=decrease,{to_rgb(trc)}[qf{k}]",
             f"[pb{k}][qf{k}]overlay=x=(W-w)/2:y=(H-h)/2:format=gbrp,{fin}[v{k}]"]
     return src(sh["clip"], sh["cin"]), lambda i: [
-        f"[{i}:v]setpts=PTS-STARTPTS,{framing(sh['clip'], sh['path'], W, H, sh['whip'], dur)},{fin}[v{k}]"]
+        f"[{i}:v]setpts=PTS-STARTPTS,{framing(sh['clip'], sh['path'], W, H, sh['whip'], dur, sh.get('hold', 0.46))},{fin}[v{k}]"]
 
 # ---------------------------------------------------------------- WORDS AND CAPTIONS
 def norm(w): return re.sub(r"[^a-z0-9']", "", w.lower().replace("’", "'"))
@@ -442,15 +446,15 @@ def graphics_events(words=None, runs=None):
     if HOOK:
         t_start = (0.0 if T0 == 0 else SEC[ORDER[0]] - AIR) if VOICE else T0
         hw = [w for w in (words or []) if t_start <= w["t0"] < HOOK_END]
-        p = dict(lines=HOOK["lines"]); ht = hook_times(HOOK["lines"], hw, t_start) if hw else None
+        p = dict(lines=HOOK["lines"], y=HOOK.get("y", {})); ht = hook_times(HOOK["lines"], hw, t_start) if hw else None
         if ht: p["times"] = ht
         ev.append(G("hook", t_start, HOOK_END - t_start, **p))
     blocked = [(e["t0"], e["t0"] + e["dur"]) for e in ev if gfx.SCENES[e["scene"]][1] or e["scene"] == "hook"]
     avoid = [[e["t0"], e["t0"] + e["dur"]] for e in ev if e["scene"] == "lower-third"]
     if CAPTIONS and VOICE and words is not None:
-        ev.append(G("captions", 0.0, TOTAL, chunks=caption_chunks(words, blocked, runs), avoid=avoid))
+        ev.append(G("captions", 0.0, TOTAL, chunks=caption_chunks(words, blocked, runs), avoid=avoid, y=CAPTION_Y))
     elif CAPTIONS and not VOICE:
-        ev.append(G("captions", 0.0, TOTAL, chunks=text_chunks(blocked), avoid=avoid))
+        ev.append(G("captions", 0.0, TOTAL, chunks=text_chunks(blocked), avoid=avoid, y=CAPTION_Y))
     return ev
 
 def text_chunks(blocked):
@@ -619,6 +623,7 @@ def build_audio(voice, events):
         ratio = 20 * np.log10(rms[active] / brms[active])
         print(f"mix: speech {speech_db:.1f} dBFS; voice over music while he speaks: median {np.median(ratio):.1f} dB, "
               f"worst 5% {np.percentile(ratio, 5):.1f} dB; music style {MUSIC_STYLE}")
+        music_report(music)
     return os.path.join(WORK, "mix.wav")
 
 def footage_audio(events, n):
@@ -631,8 +636,7 @@ def footage_audio(events, n):
         bed, fxt = bed[:n], fxt[:n]
         ref = np.sqrt((bed[:int(PICTURE_END * SR)] ** 2).mean()) + 1e-12
         music = bed * (10 ** (-18 / 20) / ref)                            # the music leads; the shots' sound sits under it
-        fx = fxt * (10 ** (-8 / 20) / (np.abs(fxt).max() + 1e-12))
-        sound = sound * 10 ** (-6 / 20)
+        fx = fxt * (10 ** (-8 / 20) / (np.abs(fxt).max() + 1e-12))     # shots' sound (about -26 dBFS) sits ~8 dB under
     mix = music + fx + sound
     path = os.path.join(WORK, "mix.wav")
     wavfile.write(path, SR, mix.astype(np.float32))
@@ -642,7 +646,20 @@ def footage_audio(events, n):
     for nm, x in (("music", music), ("fx", fx), ("sound", sound), ("mix", mix)):
         wavfile.write(os.path.join(WORK, f"{nm}.wav"), SR, x.astype(np.float32))
     print(f"mix: footage-only; music {MUSIC_STYLE or 'none (draft)'}; shots' own sound {'off' if SHOT_SOUND is None else 'on'}")
+    if MUSIC_STYLE: music_report(music)
     return path
+
+def music_report(music):
+    """The numbers to report (measured, not heard): tempo, cuts on the beat, low/mid balance of the music."""
+    import music as score
+    i = getattr(score, "INFO", {}) or {}
+    f, P = signal.welch(music.mean(1), SR, nperseg=8192); tot = P.sum() + 1e-20
+    band = lambda a, b: 10 * np.log10(P[(f >= a) & (f < b)].sum() / tot + 1e-20)
+    lo, mid, hi = band(60, 250), band(250, 2000), band(2000, 8000)
+    print(f"music: {i.get('style', MUSIC_STYLE)} {i.get('bpm_min', 0):.0f}-{i.get('bpm_max', 0):.0f} bpm; "
+          + (f"{i['cuts_on_beat']} of {i['cuts']} cuts on the beat; " if i.get("cuts") else "")
+          + f"balance low {lo - mid:+.1f} dB over mid (normal: within about +4, or up to +8 for the dark tactical and cinematic "
+            f"styles, whose chords and drums sit at 150-250 Hz), highs {hi - mid:+.1f} dB")
 
 # ---------------------------------------------------------------- RENDER
 def ffmpeg_graph(cmd_head, graph_file, cmd_tail, cwd):

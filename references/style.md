@@ -57,7 +57,7 @@ speaker's lines over action b-roll, closing on camera.
 | layer | level | notes |
 |---|---|---|
 | music | leads: the whole mix is brought to -14 LUFS (social) / -16 LUFS (regular), peaks under -1 dBTP | composed to the cut by music.py after the cut is approved; a hit on every cut |
-| shots' own sound | 6 dB under the music, each shot levelled to about -26 dBFS (boost capped at +12 dB) | `SHOT_SOUND`, per shot `sound=` (None mutes chatter) |
+| shots' own sound | about 8 dB under the music (each shot levelled to about -26 dBFS, boost capped at +12 dB) | `SHOT_SOUND` (+3 = louder), per shot `sound=` (None mutes chatter) |
 | natural-sound moments | as set in `nat()` | the bark, "Good!", the bite: tight windows |
 | transitions | about 8 dB under full scale at the loudest hit | whoosh into cards, impact on the sting, cards and end card, riser into the lift |
 

@@ -385,12 +385,15 @@ function title(ctx, t, p0, A, o) {
 
 // Social hook: the strongest line as big type over the action. p.lines use *word* for emphasis;
 // p.times (seconds from the event start, one per word) makes each word land as it is spoken.
-// Split words into k lines of about equal length.
+// Split words into k lines of about equal length, never inside an emphasised (light-blue) phrase.
 function balanced(words, k) {
-  const total = words.reduce((a, w) => a + w.s.length + 1, 0), out = [[]]; let acc = 0;
-  for (const w of words) {
+  const units = [];
+  for (const w of words) { const u = units[units.length - 1]; if (w.em && u && u[u.length - 1].em) u.push(w); else units.push([w]); }
+  const len = (u) => u.reduce((a, w) => a + w.s.length + 1, 0);
+  const total = units.reduce((a, u) => a + len(u), 0), out = [[]]; let acc = 0;
+  for (const u of units) {
     if (out[out.length - 1].length && out.length < k && acc >= (total / k) * out.length - 1e-9) out.push([]);
-    out[out.length - 1].push(w); acc += w.s.length + 1;
+    out[out.length - 1].push(...u); acc += len(u);
   }
   return out;
 }
@@ -402,7 +405,8 @@ function hook(ctx, t, p, A, o) {
   let size = sizeOf(lines);
   // the edit's own line breaks win unless more, shorter lines make the type clearly bigger (at most 4 lines)
   if (size < maxS * 0.8) for (let k = 1; k <= Math.min(4, n); k++) { const ls = balanced(all, k), s = sizeOf(ls); if (s > size * 1.08) { lines = ls; size = s; } }
-  const lh = size * 1.12, blockH = (lines.length - 1) * lh, cy = P ? 820 : 540, y0 = cy - blockH / 2 + size * 0.36;
+  const yf = (p.y || {})[P ? 'vertical' : 'horizontal'];          // edit file: HOOK = dict(..., y={"vertical": 0.4})
+  const lh = size * 1.12, blockH = (lines.length - 1) * lh, cy = yf ? yf * H : (P ? 820 : 540), y0 = cy - blockH / 2 + size * 0.36;
   const sc = clamp(t / 0.18);
   if (P) {
     const g = ctx.createLinearGradient(0, cy - blockH / 2 - 420, 0, cy + blockH / 2 + 420);
@@ -448,7 +452,8 @@ function captions(ctx, t, p) {
     size = Math.min(...lines.map((ws) => fit(ctx, ws.join(' '), maxW, maxS, 800, 0.02)));
   }
   const lifted = !P && (p.avoid || []).some(([a, b]) => t >= a - 0.2 && t < b + 0.2);
-  const lh = size * 1.18, cy = (P ? 1170 : 900) - (lifted ? 230 : 0), y0 = cy - ((lines.length - 1) * lh) / 2 + size * 0.36;
+  const yf = (p.y || {})[P ? 'vertical' : 'horizontal'];          // edit file: CAPTION_Y
+  const lh = size * 1.18, cy = (yf ? yf * H : (P ? 1170 : 900)) - (lifted ? 230 : 0), y0 = cy - ((lines.length - 1) * lh) / 2 + size * 0.36;
   const e = snap(t, ch.t0, 0.1), sc = 0.94 + 0.06 * e, track = size * 0.02, space = tw(ctx, ' ', size) + track;
   let ai = 0; ch.words.forEach((w, i) => { if (t >= w.t0 - 0.03) ai = i; });
   ctx.save(); ctx.translate(W / 2, cy); ctx.scale(sc, sc); ctx.translate(-W / 2, -cy);

@@ -2,8 +2,9 @@
 """Frames for choosing and framing shots.
 
 Usage:  python3 frames.py grid OUT.jpg CLIP:START:END:STEP [CLIP:START:END:STEP ...]   [--norot CLIP,CLIP]
-            Source frames with a 0.1-step x grid (red line = 0.5) and labels "clip time": read the subject's x
-            (and y) off it to write a shot's keys [(clip_t, cx, cy)]. Use STEP 0.25-0.5 s where the subject moves.
+            Source frames as they play (vertical clips upright) with a 0.1-step grid on the picture: yellow = cx,
+            blue = cy, red = 0.5. Read the subject's position off it to write a shot's keys [(clip_t, cx, cy)].
+            Use STEP 0.25-0.5 s where the subject moves.
         python3 frames.py strip OUT.jpg VIDEO T1 T2 T3 ...
             Frames of a RENDER at output times, side by side: check every shot keeps the subject in frame.
 
@@ -37,18 +38,25 @@ def grid(out, specs, norot, footage):
     for s in specs:
         c, a, b, st = s.split(":"); t = float(a)
         while t <= float(b) + 1e-6: jobs.append((c, round(t, 2))); t += float(st)
-    TW, TH, C = 384, 216, 5; wd = tempfile.mkdtemp(prefix="hk9i_")
+    wd = tempfile.mkdtemp(prefix="hk9i_")
+    first = Image.open(grab(clip_path(jobs[0][0], footage), jobs[0][1], 400, 400, jobs[0][0] in norot, f"{wd}/probe.jpg"))
+    portrait = first.height > first.width                      # vertical phone clips get portrait tiles
+    TW, TH, C = (240, 427, 8) if portrait else (384, 216, 5)
     with ThreadPoolExecutor(8) as ex:
         files = list(ex.map(lambda j: grab(clip_path(j[0], footage), j[1], TW, TH, j[0] in norot, f"{wd}/{j[0]}_{j[1]}.jpg"), jobs))
     im = Image.new("RGB", (C * TW, ((len(jobs) + C - 1) // C) * TH)); d = ImageDraw.Draw(im); f = ImageFont.load_default()
     for k, ((c, t), fp) in enumerate(zip(jobs, files)):
         x, y = (k % C) * TW, (k // C) * TH
-        if os.path.exists(fp): q = Image.open(fp); im.paste(q, (x + (TW - q.width) // 2, y + (TH - q.height) // 2))
-        for g in range(1, 10):
-            gx = x + int(TW * g / 10); d.line([gx, y, gx, y + TH], fill=(255, 0, 0) if g == 5 else (255, 255, 0))
-            d.text((gx + 2, y + TH - 14), f".{g}", fill="yellow", font=f)
-        d.rectangle([x, y, x + 110, y + 15], fill="black"); d.text((x + 3, y + 2), f"{c} {t}", fill="cyan", font=f)
-    im.save(out, quality=72); print(f"{len(jobs)} frames -> {out}")
+        if not os.path.exists(fp): continue
+        q = Image.open(fp); px, py = x + (TW - q.width) // 2, y + (TH - q.height) // 2; im.paste(q, (px, py))
+        for g in range(1, 10):                                   # 0.1 grid on the picture itself: x (cx) and y (cy)
+            gx = px + int(q.width * g / 10); gy = py + int(q.height * g / 10)
+            d.line([gx, py, gx, py + q.height], fill=(255, 0, 0) if g == 5 else (255, 255, 0))
+            d.line([px, gy, px + q.width, gy], fill=(255, 0, 0) if g == 5 else (0, 200, 255))
+            d.text((gx + 2, py + q.height - 14), f".{g}", fill="yellow", font=f)
+            d.text((px + 2, gy + 1), f".{g}", fill=(0, 200, 255), font=f)
+        d.rectangle([x, y, x + 110, y + 15], fill="black"); d.text((x + 3, y + 2), f"{c} {t}", fill="white", font=f)
+    im.save(out, quality=72); print(f"{len(jobs)} frames -> {out} (grid: yellow = cx, blue = cy, red = 0.5)")
 
 
 def strip(out, video, times):

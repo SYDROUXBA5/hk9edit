@@ -88,6 +88,7 @@ WORDS = "INTERVIEW_words.csv"
         FORMATS = ("vertical", "horizontal")
         MUSIC_STYLE = "uplifting"
         CAPTIONS = True
+        CAPTION_Y = {{"vertical": 0.72}}
         COLD = dict(clip="BROLL_A", cin=1.0, cout=4.0, hit=3.0)
         ENERGY = {{"intro": 1, "why": 2, "proof": 3, "close": 1}}
         LIFT = "proof"
@@ -98,7 +99,8 @@ WORDS = "INTERVIEW_words.csv"
                 e.S("COLD", "BROLL_A", 1.0, e.STING[0], [(1.0, .5, .5)], zk=[(1.0, 1.0), (4.0, 1.1)]),
                 e.B("STING", e.STING[1]),
                 e.S("CAM", INTERVIEW, {a0 - .05:.2f} - 0.35, e.nxt("intro"), [({a0:.2f}, .5, .4)]),
-                e.S("B1", "BROLL_B", 2.0, e.nxt("why"), [(2.0, .5, .5)], fit="contain"),
+                e.S("B1", "BROLL_B", 2.0, e.nxt("why"), [(2.0, .5, .5)], zk=[(2.0, 1.2)], hold=0.4,
+                    h=dict(fit="contain", zk=[(2.0, 1.0)])),
                 e.B("QUOTE", e.nxt("proof")),
                 e.S("B2", "BROLL_A", 6.0, e.PICTURE_END, [(6.0, .5, .5)], punch=.05, whip="i"),
                 e.B("END", e.TOTAL),

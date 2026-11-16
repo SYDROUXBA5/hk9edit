@@ -116,19 +116,34 @@ def render(job, outdir, fill_blanks=True, quiet=False, workers=None):
     threading.Thread(target=srv.serve_forever, daemon=True).start()
     exe, procs, profs, t0 = find_browser(), [], [], time.time()
     try:
-        for w in range(len(jobs)):
-            prof = tempfile.mkdtemp(prefix="hk9gfx_"); profs.append(prof)
-            args = [exe, "--headless=new", "--no-first-run", "--no-default-browser-check", "--disable-extensions",
+        def launch(prof, w):
+            return [exe, "--headless=new", "--no-first-run", "--no-default-browser-check", "--disable-extensions",
                     "--disable-sync", "--disable-background-networking", "--disable-component-update", "--disable-default-apps",
                     "--mute-audio", "--hide-scrollbars", "--disable-background-timer-throttling", "--disable-renderer-backgrounding",
                     "--disable-backgrounding-occluded-windows", f"--user-data-dir={prof}", f"--window-size={job['W']},{job['H']}",
                     "--force-device-scale-factor=1", f"http://127.0.0.1:{srv.server_address[1]}/index.html?job={w}"]
-            procs.append(subprocess.Popen(args, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL))
+        for w in range(len(jobs)):
+            prof = tempfile.mkdtemp(prefix="hk9gfx_"); profs.append(prof)
+            procs.append(subprocess.Popen(launch(prof, w), stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL))
+        retries = 0
         while st["done"] < len(jobs) and not st["error"]:
-            if any(p.poll() is not None for p in procs) and st["done"] < len(jobs):
-                time.sleep(0.5)
-                if st["done"] < len(jobs) and not st["error"]: raise RuntimeError("a browser closed before the graphics were drawn")
-            if time.time() - st["last"] > 120: raise RuntimeError("the graphics page stopped answering (2 min without a frame)")
+            dead = any(p.poll() is not None for p in procs)
+            if dead: time.sleep(0.5)
+            if (dead and st["done"] < len(jobs)) or time.time() - st["last"] > 90:
+                # a browser crashed or stalled (a busy or sleeping computer): start fresh browsers for what is missing
+                missing = [i for j in jobs for i in j["frames"] if i not in st["drawn"] and i not in st["dups"]]
+                if not missing or retries >= 2:
+                    raise RuntimeError("the graphics browser stopped (tried 3 times); close other heavy apps and run again")
+                retries += 1; print(f"graphics: a browser stalled; retrying {len(missing)} frames (attempt {retries + 1})")
+                for p in procs:
+                    p.terminate()
+                    try: p.wait(10)
+                    except subprocess.TimeoutExpired: p.kill()
+                size = -(-len(missing) // len(jobs)); jobs[:] = [dict(job, frames=missing[j * size:(j + 1) * size]) for j in range(len(jobs))]
+                jobs[:] = [j for j in jobs if j["frames"]]; srv.jobs = jobs; st["done"] = 0; st["last"] = time.time(); procs = []
+                for w in range(len(jobs)):
+                    prof = tempfile.mkdtemp(prefix="hk9gfx_"); profs.append(prof)
+                    args = launch(prof, w); procs.append(subprocess.Popen(args, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL))
             time.sleep(0.05)
         if st["error"]: raise RuntimeError("graphics page error: " + st["error"])
     finally:

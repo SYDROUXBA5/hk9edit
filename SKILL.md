@@ -57,7 +57,8 @@ computer voice or narration.
 Chrome, and draws one test graphic. If something is missing, tell the user what to install from `README.md` (on
 Windows: `install_windows.ps1`) instead of improvising. Never install anything without saying so.
 
-Work in a folder next to the footage (e.g. `<footage>/../_edit/`). Never write into or modify the source clips.
+Work in a folder next to the footage (e.g. `<footage>/../_edit/`) or where the user says; the videos land next to
+the edit file unless `OUT_DIR` says otherwise. Never write into or modify the source clips.
 Delegate bulk mechanical reading (many contact sheets) to a cheaper sub-agent if you have one, and keep the
 judgement calls (which moment, which shot, which text) yourself.
 
@@ -79,13 +80,17 @@ judgement calls (which moment, which shot, which text) yourself.
    `HOOK = dict(lines=[...], dur=2.6)` puts a short bold line over the first shots (`*word*` or `*several words*` =
    emphasis in light blue): a promise or a result ("Day one to *detection-ready*"), true to the footage and the
    user's facts.
-5. **Frame every shot.** `FOOTAGE=... python S/frames.py grid OUT.jpg CLIP:START:END:STEP ...` gives source frames
-   with a 0.1 grid: write `keys` (cx, cy of the dog). Slow push-ins (`zk`), a punch on cuts into action, whip blur on
-   the 2-3 hardest cuts. `fit="contain"` shows a whole clip over a blurred copy of itself (a vertical clip in a 16:9
-   film when the crop would lose the action).
+5. **Frame every shot.** `FOOTAGE=... python S/frames.py grid OUT.jpg CLIP:START:END:STEP ...` gives the frames as
+   they play (vertical clips upright) with a 0.1 grid: write `keys` (cx, cy of the dog). Slow push-ins (`zk`), a punch
+   on cuts into action, whip blur on the 2-3 hardest cuts. `hold` (default 0.46) is the screen height where the dog
+   is held: lower it (0.38-0.42) when captions would sit on the dog. When both formats are wanted, frame each one:
+   a vertical clip fills 9:16 at zoom 1 but is already a 1.78x crop in 16:9, so give the 16:9 its own framing with
+   `h=dict(zk=[...], keys=[...], hold=...)` (and `v=dict(...)` for 9:16 only); one render then makes both.
+   `fit="contain"` shows a whole clip over a blurred copy of itself (a vertical clip in 16:9 when the crop would lose
+   the action).
 6. **Sound.** Each shot plays its own natural sound under the music (`SHOT_SOUND`, dB; `sound=None` on a shot mutes
    it, e.g. people chatting). Add tight `nat()` windows for the moments that matter (the bark, "Good!", the bite).
-   Listen-free check: transcribe a window (`python S/transcribe.py`) if you suspect talking.
+   Listen-free check: `python S/transcribe.py CLIP OUT --range 3.2-5.0 [A-B ...]` runs Whisper on just those windows.
 7. **Text and graphics** (`graphics(e)` and `CAPTION_TEXT`; catalogue in `references/graphics.md`):
    - captions (if they said yes): one short line per idea, 2-6 words, while the shot that shows it is on screen,
      `CAPTION_TEXT = [(start, end, "Nose down, box by box.")]`; describe what we see or the user's facts, never a claim
@@ -93,6 +98,8 @@ judgement calls (which moment, which shot, which text) yourself.
    - a `title` at the start of a part ("THE FIND"), a `steps` card for a sequence, a `stat` card for a number the
      user gives, a `kinetic` statement between parts, a `lower-third` naming the dog or handler (ask the name)
    - full-screen cards hide the footage: put an `e.B(...)` black shot under them and keep footage between cards
+   - text height: `CAPTION_Y = {"vertical": 0.72, "horizontal": 0.86}` moves the captions, `HOOK = dict(..., y={...})`
+     the hook, when they would cover the dog (fractions of the frame height)
 
 ## 4. Check, preview, review
 
@@ -119,7 +126,8 @@ A different style or level later takes seconds: change `MUSIC_STYLE` (or `ENERGY
 
 ## 6. Report
 
-`python S/qa.py <OUTPUT>_vertical.mp4 WORK` prints the length and loudness (target -14 LUFS social, -16 regular).
+`python S/qa.py <OUTPUT>_vertical.mp4 WORK` prints the length and loudness (target -14 LUFS social, -16 regular), and
+the build's `music:` line gives the tempo, how many cuts landed on the beat and the music's low/mid balance.
 Report: the file paths, the length against what they asked for, the shot list (time, what we see), the text on
 screen, the graphics, the music style, and what you could not confirm by ear (music level against the natural
 sound, any chatter left in the shots' sound). Never claim you listened.

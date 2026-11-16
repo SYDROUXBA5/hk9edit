@@ -10,8 +10,9 @@ An interview edit (a real person talking) uses SECTIONS instead of PARTS/LENGTH:
 """
 
 # ---------------------------------------------------------------- FILES
+import os
 FOOTAGE = r"C:\path\to\footage"       # folder holding the clips (only read, never written)
-OUT_DIR = FOOTAGE                     # where the videos go
+OUT_DIR = os.path.dirname(os.path.abspath(__file__))   # the videos go next to this file (never into the footage folder)
 OUTPUT = "Highland_Topic_Date"        # -> Highland_Topic_Date_vertical.mp4 / _horizontal.mp4
 NOROT = ()                            # clips with a wrong rotation flag (upright only with -noautorotate), e.g. ("0012",)
 
@@ -33,6 +34,7 @@ HOOK = dict(lines=["Day one to", "*detection-ready*"], dur=2.6)   # social: a bo
 
 # ---------------------------------------------------------------- TEXT ON SCREEN
 CAPTIONS = True                       # the user's answer; False = titles and cards only
+# CAPTION_Y = {"vertical": 0.72, "horizontal": 0.86}   # caption height (fraction of the frame) if they would cover the dog
 CAPTION_TEXT = [                      # (output start, end, short line): what we see or the user's facts, never invented
     (3.0, 6.0, "Odor imprint: the first search."),
     (14.2, 17.4, "Her first independent find."),
@@ -53,10 +55,12 @@ def shots(e):
       zk    [(clip_t, zoom)] slow push-ins 1.0 -> 1.10-1.20
       punch extra zoom that settles in 0.1 s after the cut (0.04-0.08); whip "i" = motion blur on the first frames
       fit   "cover" (default) or "contain" (the whole clip over a blurred copy, e.g. a vertical clip in 16:9)
+      hold  screen height where the dog is held (default 0.46); h=dict(...) / v=dict(...) = framing for one format only
     Cut in steady steps (multiples of 0.5 s) so the music's beats meet the cuts."""
     return [
         e.S("H1  the find, hook", "IMG_0002", 8.1, 2.6, [(8.1, .50, .60)], zk=[(8.1, 1.10), (10.7, 1.20)], punch=.06),
-        e.S("W1  nose down on the boxes", "IMG_0003", 1.5, 4.6, [(1.5, .48, .62)], punch=.05, whip="i"),
+        e.S("W1  nose down on the boxes", "IMG_0003", 1.5, 4.6, [(1.5, .48, .62)], zk=[(1.5, 1.3)], hold=0.4, punch=.05, whip="i",
+            h=dict(zk=[(1.5, 1.0)], keys=[(1.5, .48, .55)])),   # vertical clip: tighter in 9:16, its own crop in 16:9
         # ... one action shot per beat of the story ...
         e.S("R1  the alert", "IMG_0005", 3.0, e.SEC["result"] + 2.5, [(3.0, .55, .58)], punch=.06),
         e.S("C1  reward, dog and handler", "IMG_0007", 11.2, e.PICTURE_END, [(11.2, .47, .55)], zk=[(11.2, 1.0), (16.2, 1.08)]),

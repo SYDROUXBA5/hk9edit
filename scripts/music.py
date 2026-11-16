@@ -247,11 +247,19 @@ def voice_lead(prev, notes, lo=50, hi=67):
     return min(cands, key=lambda c: sum(abs(a - b) for a, b in zip(sorted(c), sorted(prev))))
 
 
+INFO = {}          # filled by render(): tempo range, cuts on the beat (build.py prints it)
+
+
 def render(style_id, cues):
     if style_id not in STYLES: raise KeyError(f"unknown music style '{style_id}': " + ", ".join(STYLES))
     st, sr, total = STYLES[style_id], cues["sr"], cues["total"]
     n = int(total * sr); S = Score(n, sr, cues.get("seed", 1))
     beats, down, anchors = build_grid(cues, st["bpm"])
+    bl = np.diff(beats[beats < total]) if len(beats) > 1 else np.array([60 / st["bpm"]])
+    cuts = [c for c in cues.get("cuts", []) if c < total - 0.1] if not cues.get("voice", True) else []
+    half = np.concatenate([beats, (beats[:-1] + beats[1:]) / 2]) if len(beats) > 1 else beats
+    INFO.clear(); INFO.update(style=style_id, bpm_min=60 / bl.max(), bpm_max=60 / bl.min(), cuts=len(cuts),
+                              cuts_on_beat=sum(1 for c in cuts if np.abs(half - c).min() <= 0.045))
     secs = cues["sections"]; first = secs[0][1] if secs else 0.0; voice_end = cues["voice_end"]
     endc = cues.get("end_card"); lift = cues.get("lift"); energy_map = cues.get("energy", {})
     hook = cues.get("hook"); cold = cues.get("cold"); sting = cues.get("sting")
@@ -307,10 +315,10 @@ def render(style_id, cues):
                 tt = sixteenth(bi, j); pos = b_i * 4 + j
                 if tt >= (endc[0] if endc else total) - 0.02: continue
                 if style_id == "tactical":
-                    if e >= 1: S.add("bass", tt, S.bass(hz(rootb + (12 if j == 2 and e >= 3 else 0)), 0.11, "saw"), 0.30 + 0.06 * e)
+                    if e >= 1: S.add("bass", tt, S.bass(hz(rootb + (12 if j == 2 and e >= 3 else 0)), 0.11, "saw"), 0.22 + 0.04 * e)
                     if e >= 1 and j % 2 == 0: S.add("perc", tt, S.hit("tick"), 0.10 + 0.04 * e, pan=0.3 if j else -0.3)
                     if e >= 2 and j % 2 == 1: S.add("perc", tt, S.hit("hat"), 0.10, pan=0.2)
-                    if e >= 2 and j == 0 and b_i % 2 == 0: S.add("drums", tt, S.hit("taiko"), 0.75); kicks.append(tt)
+                    if e >= 2 and j == 0 and b_i % 2 == 0: S.add("drums", tt, S.hit("taiko"), 0.55); kicks.append(tt)
                     if e >= 3 and j == 0 and b_i % 2 == 1: S.add("drums", tt, S.hit("snare"), 0.5); S.add("drums", tt, S.hit("clap"), 0.25)
                     if e >= 3 and b_i == nb - 1 and j >= 2 and len(bars) and nb >= 4: S.add("drums", tt, S.hit("tom"), 0.35, pan=-0.2 if j == 2 else 0.2)
                 elif style_id == "cinematic":
@@ -353,7 +361,7 @@ def render(style_id, cues):
             S.add("keys", t0, S.stab([notes[0] - 12, notes[0], notes[1]], 0.45), 0.55)
     # no voice: a hit on every cut, so the music answers the picture
     if not cues.get("voice", True):
-        kind, bus, g = {"tactical": ("tom", "drums", 0.42), "cinematic": ("tom", "drums", 0.45), "uplifting": ("clap", "drums", 0.24),
+        kind, bus, g = {"tactical": ("snare", "drums", 0.32), "cinematic": ("tom", "drums", 0.40), "uplifting": ("clap", "drums", 0.24),
                         "warm": ("rim", "drums", 0.15), "groove": ("snare", "drums", 0.26)}[style_id]
         for c in cues.get("cuts", []):
             if endc and c >= endc[0] - 0.05: continue
@@ -397,6 +405,8 @@ def render(style_id, cues):
     bed = (verb(pad, 0.35) * 0.9 + verb(S.bus["keys"], 0.3) * 1.0 + S.hp(S.bus["bass"], 35, 2) * 0.3
            + verb(S.bus["drums"], 0.12) * 0.9 + verb(S.bus["perc"], 0.15) * 2.6)
     bed = S.hp(bed, 30, 2)
+    if style_id in ("tactical", "cinematic"):            # their big drums measured 5-8 dB heavy below 150 Hz: a 5 dB low shelf
+        bed = bed + (10 ** (-5 / 20) - 1) * S.lp(bed, 150, 2)
     bed = np.tanh(bed * 1.5 / (np.abs(bed).max() + 1e-9)) / math.tanh(1.5)
     fx = verb(S.bus["fx"], 0.4); fx = fx / (np.abs(fx).max() + 1e-9)
     t = np.arange(len(bed)) / sr; fade = np.clip((total - t) / 0.8, 0, 1)
