@@ -49,21 +49,26 @@ FOOTAGE, OUTPUT = E.FOOTAGE, E.OUTPUT
 OUT_DIR = opt("OUT_DIR", FOOTAGE)
 WORK = os.path.abspath(os.environ.get("WORK") or os.path.join(os.path.dirname(EDIT_PATH), "work_" + os.path.splitext(os.path.basename(EDIT_PATH))[0]))
 FPS, SR, XF = 30, 48000, 0.02                    # frame rate, audio rate, splice crossfade
-TONE = E.ROOM_TONE                               # start of >= 0.6 s of speech-free room tone in the interview
+VOICE = bool(opt("INTERVIEW", None))             # False: a footage-only edit (no voice): natural sound, on-screen text, music
+TONE = opt("ROOM_TONE", 0.0)                     # interview edits: start of >= 0.6 s of speech-free room tone in the interview
 NOROT = tuple(opt("NOROT", ()))                  # clips carrying a wrong rotation flag: read with -noautorotate
 EDIT_TYPE = opt("EDIT_TYPE", "regular")
 assert EDIT_TYPE in ("regular", "social"), "EDIT_TYPE is 'regular' or 'social'"
 SOCIAL = EDIT_TYPE == "social"
-LUFS, PEAK = opt("LUFS", -14.0 if SOCIAL else -16.0), -1.5
+LUFS, PEAK = opt("LUFS", -14.0 if SOCIAL else -16.0), -2.0      # -2 dBFS sample peak keeps the AAC true peak under -1
 AIR = opt("SECTION_AIR", 0.25 if SOCIAL else 0.35)      # pause before each section
-SECTIONS, ENERGY = E.SECTIONS, opt("ENERGY", {})
+SECTIONS, ENERGY = opt("SECTIONS", []), opt("ENERGY", {})
+PARTS = opt("PARTS", [])                         # footage-only: [(part, output start)]: the story's parts (music energy, downbeats)
+LENGTH = opt("LENGTH", None)                     # footage-only: seconds of picture before the end card
+SHOT_SOUND = opt("SHOT_SOUND", 0.0)              # footage-only: each shot's own sound, dB re -26 dBFS (None: silent)
+CAPTION_TEXT = opt("CAPTION_TEXT", [])           # footage-only captions: [(start, end, "short line")]
 CUTS = sorted(opt("CUTS", []))
 COLD = opt("COLD", None)                         # natural-sound cold open (regular), or None
 HOOK = opt("HOOK", None)                         # social: dict(lines=[...]) laid over the first section
 LOGO_STING = opt("LOGO_STING", not SOCIAL); STING_LEN = 3.0
 END_CARD = opt("END_CARD", True); END_CARD_LEN = float(opt("END_CARD_LEN", 4.0))
-END_HOLD = float(opt("END_HOLD", 0.5 if END_CARD else 2.6))   # picture after the last word, before the end card
-CAPTIONS = opt("CAPTIONS", SOCIAL)
+END_HOLD = float(opt("END_HOLD", (0.5 if END_CARD else 2.6) if VOICE else 0.0))   # picture after the last word
+CAPTIONS = opt("CAPTIONS", SOCIAL if VOICE else bool(CAPTION_TEXT))
 MUSIC_STYLE = opt("MUSIC_STYLE", None)
 # music level re the speech level: under the voice, where nobody speaks (sting, cards, end card), extra dip while he talks
 MUSIC_UNDER_VOICE, MUSIC_ALONE, DUCK = opt("MUSIC_UNDER_VOICE", -15.0), opt("MUSIC_ALONE", -3.0), opt("DUCK", 5.0)
@@ -79,7 +84,7 @@ def clip(name):
     if not hits: raise FileNotFoundError(f"no clip '{name}' in {FOOTAGE}")
     return hits[0]
 def run(cmd, **kw): return subprocess.run(cmd, check=True, **kw)
-INTERVIEW = clip(E.INTERVIEW)
+INTERVIEW = clip(E.INTERVIEW) if VOICE else None
 
 # ---------------------------------------------------------------- TIMELINE
 T_COLD = (COLD["cout"] - COLD["cin"]) if COLD else 0.0
@@ -104,11 +109,16 @@ def timeline():
             if p[0] == "gap": t += p[1]; continue
             for a, b in split(p[1], p[2]): tl.append((p[0], a, b, t)); t += b - a
     return tl, sec, t
-TL, SEC, VOICE_END = timeline()
+if VOICE:
+    TL, SEC, VOICE_END = timeline(); ORDER = [s for s, _ in SECTIONS]
+else:                                            # footage-only: the parts and LENGTH set the timing
+    assert LENGTH, "a footage-only edit needs LENGTH (seconds of picture before the end card)"
+    TL, SEC, VOICE_END = [], {n: float(t) for n, t in PARTS}, float(LENGTH); ORDER = [n for n, _ in PARTS]
 PICTURE_END = VOICE_END + END_HOLD
 TOTAL = PICTURE_END + (END_CARD_LEN if END_CARD else 0.0)
-ORDER = [s for s, _ in SECTIONS]
-HOOK_END = (SEC[ORDER[1]] - AIR / 2 if len(ORDER) > 1 else VOICE_END) if HOOK else None
+if HOOK and VOICE: HOOK_END = SEC[ORDER[1]] - AIR / 2 if len(ORDER) > 1 else VOICE_END
+elif HOOK: HOOK_END = T0 + float(HOOK.get("dur", 2.6))       # no voice: the hook's words land in rhythm
+else: HOOK_END = None
 
 def m(name, src):
     """Output time of a source time inside a named voice piece (a time inside a cut maps to the cut point)."""
@@ -123,12 +133,13 @@ def nxt(name):
     """Output time at which the section after `name` begins (the voice end for the last one)."""
     i = ORDER.index(name); return SEC[ORDER[i + 1]] if i + 1 < len(ORDER) else VOICE_END
 
-def S(label, clip_, cin, tend, keys, zk=None, punch=0.0, whip="", line="", fit="cover"):
+def S(label, clip_, cin, tend, keys, zk=None, punch=0.0, whip="", line="", fit="cover", sound=0.0):
     """A shot: label (first word = id), clip, clip in-point, OUTPUT time the shot ends, subject keys [(clip_t, cx, cy)],
     zoom keys [(clip_t, z)], punch = extra zoom that decays in 0.1 s after the cut, whip = "i"/"o" blur in/out,
-    fit = "cover" (fill the frame, crop around the subject) or "contain" (whole clip over a blurred copy of itself)."""
+    fit = "cover" (fill the frame, crop around the subject) or "contain" (whole clip over a blurred copy of itself),
+    sound = footage-only edits: this shot's own sound in dB re SHOT_SOUND (None: silent)."""
     return dict(kind="clip", label=label, clip=clip_, cin=cin, tend=tend, keys=keys, zk=zk or [(cin, 1.0)], punch=punch,
-                whip=whip, line=line, fit=fit)
+                whip=whip, line=line, fit=fit, sound=sound)
 def B(label, tend, line=""):
     """Black picture, under a full-screen graphic (logo sting, end card, quote card...)."""
     return dict(kind="black", label=label, clip=None, cin=0.0, tend=tend, keys=[(0.0, .5, .5)], zk=[(0.0, 1.0)], punch=0.0,
@@ -146,7 +157,7 @@ class Api: pass
 api = Api()
 for k, v in dict(m=m, start=start, end=end, nxt=nxt, S=S, B=B, SPLIT=SPLIT, G=G, SEC=SEC, VOICE_END=VOICE_END,
                  PICTURE_END=PICTURE_END, TOTAL=TOTAL, STING=STING, T_COLD=T_COLD, T_HIT=T_HIT, COLD=COLD,
-                 HOOK_END=HOOK_END, INTERVIEW=E.INTERVIEW, SOCIAL=SOCIAL).items(): setattr(api, k, v)
+                 HOOK_END=HOOK_END, INTERVIEW=opt("INTERVIEW", None), SOCIAL=SOCIAL, VOICE=VOICE).items(): setattr(api, k, v)
 RAW_SHOTS = E.shots(api)
 USER_GFX = list(E.graphics(api)) if hasattr(E, "graphics") else []
 
@@ -429,16 +440,28 @@ def graphics_events(words=None, runs=None):
     ev += USER_GFX
     if END_CARD: ev.append(G("end-card", PICTURE_END, END_CARD_LEN, **opt("END_CARD_WORDS", {})))
     if HOOK:
-        t_start = 0.0 if T0 == 0 else SEC[ORDER[0]] - AIR
+        t_start = (0.0 if T0 == 0 else SEC[ORDER[0]] - AIR) if VOICE else T0
         hw = [w for w in (words or []) if t_start <= w["t0"] < HOOK_END]
         p = dict(lines=HOOK["lines"]); ht = hook_times(HOOK["lines"], hw, t_start) if hw else None
         if ht: p["times"] = ht
         ev.append(G("hook", t_start, HOOK_END - t_start, **p))
-    if CAPTIONS and words is not None:
-        blocked = [(e["t0"], e["t0"] + e["dur"]) for e in ev if gfx.SCENES[e["scene"]][1] or e["scene"] == "hook"]
-        avoid = [[e["t0"], e["t0"] + e["dur"]] for e in ev if e["scene"] == "lower-third"]
+    blocked = [(e["t0"], e["t0"] + e["dur"]) for e in ev if gfx.SCENES[e["scene"]][1] or e["scene"] == "hook"]
+    avoid = [[e["t0"], e["t0"] + e["dur"]] for e in ev if e["scene"] == "lower-third"]
+    if CAPTIONS and VOICE and words is not None:
         ev.append(G("captions", 0.0, TOTAL, chunks=caption_chunks(words, blocked, runs), avoid=avoid))
+    elif CAPTIONS and not VOICE:
+        ev.append(G("captions", 0.0, TOTAL, chunks=text_chunks(blocked), avoid=avoid))
     return ev
+
+def text_chunks(blocked):
+    """Footage-only captions: each CAPTION_TEXT line is one caption; the light-blue box walks its words at reading pace."""
+    out = []
+    for a, b, txt in CAPTION_TEXT:
+        if any(x <= a < y for x, y in blocked): print(f"WARNING: caption at {a:.2f} s sits under a card or the hook: move it"); continue
+        ws = [w.replace("*", "") for w in str(txt).split() if shown_word(w)]          # written lines keep their punctuation
+        step = min(0.24, max(0.1, (b - a) * 0.5 / max(1, len(ws))))
+        out.append(dict(t0=float(a), t1=float(b), words=[dict(w=w, t0=float(a) + i * step) for i, w in enumerate(ws)]))
+    return out
 
 def graphics_frames(orient, events):
     """Draw the graphics track for one format (cached: redrawn only when the graphics or motion/ change)."""
@@ -499,6 +522,7 @@ def stem(src_path, a, b):
     return wavfile.read(raw)[1].astype(np.float64) / 32768.0
 
 def build_voice():
+    if not VOICE: return np.zeros((int(TOTAL * SR), 2))
     raw = os.path.join(WORK, "interview48.wav")
     extract_clean(INTERVIEW, raw, SR, **opt("DENOISE", dict(gmin_db=-24.0, beta=1.7)))
     x = wavfile.read(raw)[1].astype(np.float64) / 32768.0
@@ -520,6 +544,23 @@ def build_voice():
     sos = signal.butter(2, 80, "hp", fs=SR, output="sos")
     return signal.sosfilt(sos, buf[:n], axis=0)
 
+def shot_sound():
+    """Footage-only edits: every shot's own sound at its place, levelled to about -26 dBFS (+ SHOT_SOUND + the shot's
+    `sound`), 30 ms fades at the cuts. Boost is capped at +12 dB so a quiet clip's hiss is not pumped up."""
+    y = np.zeros((int(TOTAL * SR), 2))
+    if VOICE or SHOT_SOUND is None: return y
+    f = int(0.03 * SR); ramp = np.linspace(0, 1, f)[:, None]
+    for sh in SHOTS:
+        if sh["kind"] != "clip" or sh.get("sound", 0.0) is None: continue
+        try: x = stem(clip(sh["clip"]), sh["cin"], sh["cin"] + sh["dur"])
+        except subprocess.CalledProcessError: continue                       # a clip without sound
+        if len(x) < 2 * f: continue
+        rms = np.sqrt((x ** 2).mean()) + 1e-9
+        g = min(10 ** (12 / 20), 10 ** ((-26 + SHOT_SOUND + sh.get("sound", 0.0)) / 20) / rms)
+        x = x * g; x[:f] *= ramp; x[-f:] *= ramp[::-1]
+        i = int(round(sh["t0"] * SR)); y[i:i + len(x)] += x[:len(y) - i]
+    return y
+
 def build_nat():
     y = np.zeros((int(TOTAL * SR), 2)); f = int(0.03 * SR); ramp = np.linspace(0, 1, f)[:, None]
     for c, a, b, o, g in (E.nat(api, SH) if hasattr(E, "nat") else []):
@@ -538,10 +579,13 @@ def cue_sheet(events, active):
                 hook=(0.0, HOOK_END) if HOOK else None, end_card=(PICTURE_END, TOTAL) if END_CARD else None,
                 cards=[(e["t0"], e["t0"] + e["dur"], e["scene"]) for e in events if gfx.SCENES[e["scene"]][1] and e["scene"] not in ("logo-sting", "end-card")],
                 overlays=[(e["t0"], e["scene"]) for e in events if e["scene"] in ("lower-third", "title")],
-                voice_active=active, frame=0.02, social=SOCIAL, seed=opt("MUSIC_SEED", 1))
+                voice_active=active, frame=0.02, social=SOCIAL, seed=opt("MUSIC_SEED", 1), voice=VOICE,
+                cuts=[sh["t0"] for sh in SHOTS[1:] if not any(c0 - 0.05 <= sh["t0"] <= c1 + 0.05 for c0, c1, _ in
+                      [(e["t0"], e["t0"] + e["dur"], 0) for e in events if gfx.SCENES[e["scene"]][1]])])
 
 def build_audio(voice, events):
     os.makedirs(WORK, exist_ok=True)
+    if not VOICE: return footage_audio(events, len(voice))
     wavfile.write(os.path.join(WORK, "voice_raw.wav"), SR, (np.clip(voice, -1, 1) * 32767).astype(np.int16))
     vg = 10 ** ((LUFS - loudness(os.path.join(WORK, "voice_raw.wav"))) / 20); voice = voice * vg
     k = int(0.02 * SR); fr = voice.mean(1)[:len(voice) // k * k].reshape(-1, k); rms = np.sqrt((fr ** 2).mean(1))
@@ -576,6 +620,29 @@ def build_audio(voice, events):
         print(f"mix: speech {speech_db:.1f} dBFS; voice over music while he speaks: median {np.median(ratio):.1f} dB, "
               f"worst 5% {np.percentile(ratio, 5):.1f} dB; music style {MUSIC_STYLE}")
     return os.path.join(WORK, "mix.wav")
+
+def footage_audio(events, n):
+    """No voice: the shots' own sound and natural-sound windows, with the music leading once MUSIC_STYLE is set;
+    the whole mix is brought to LUFS."""
+    sound = shot_sound()[:n] + build_nat()[:n]; music = np.zeros((n, 2)); fx = np.zeros((n, 2))
+    if MUSIC_STYLE:
+        import music as score
+        bed, fxt = score.render(MUSIC_STYLE, cue_sheet(events, np.zeros(int(TOTAL / 0.02), bool)))
+        bed, fxt = bed[:n], fxt[:n]
+        ref = np.sqrt((bed[:int(PICTURE_END * SR)] ** 2).mean()) + 1e-12
+        music = bed * (10 ** (-18 / 20) / ref)                            # the music leads; the shots' sound sits under it
+        fx = fxt * (10 ** (-8 / 20) / (np.abs(fxt).max() + 1e-12))
+        sound = sound * 10 ** (-6 / 20)
+    mix = music + fx + sound
+    path = os.path.join(WORK, "mix.wav")
+    wavfile.write(path, SR, mix.astype(np.float32))
+    if np.abs(mix).max() > 0:
+        target = LUFS if MUSIC_STYLE else LUFS - 6                         # a draft without music stays a little quieter
+        mix = mix * 10 ** ((target - loudness(path)) / 20)
+    for nm, x in (("music", music), ("fx", fx), ("sound", sound), ("mix", mix)):
+        wavfile.write(os.path.join(WORK, f"{nm}.wav"), SR, x.astype(np.float32))
+    print(f"mix: footage-only; music {MUSIC_STYLE or 'none (draft)'}; shots' own sound {'off' if SHOT_SOUND is None else 'on'}")
+    return path
 
 # ---------------------------------------------------------------- RENDER
 def ffmpeg_graph(cmd_head, graph_file, cmd_tail, cwd):
@@ -659,7 +726,7 @@ def main():
         print(f"{sh['t0']:6.2f}-{sh['t0'] + sh['dur']:5.2f}  {sh['dur']:5.2f}  {sh['label']}  "
               + (f"[{sh['clip']} {sh['cin']:.2f}-{sh['cin'] + sh['dur']:.2f}]" if sh["kind"] == "clip" else f"[{sh['kind']}]")
               + (f"\n{'':22}{sh['line']}" if sh["line"] else ""))
-    src = source_words() if (CAPTIONS or HOOK) else None
+    src = source_words() if VOICE and (CAPTIONS or HOOK) else None
     words = output_words(src) if src is not None else None
     events = graphics_events(words)
     print("graphics:")

@@ -3,31 +3,35 @@
 Built on the HK9 referral edit the client signed off (a 92 s K-9 handler referral, vertical and horizontal), with
 the Highland graphics added. Reproduce its feel; the numbers are starting points that worked, not laws.
 
-## Shape
-
-### Regular edit (YouTube, website, referrals)
-
-| part | length | what happens |
-|---|---|---|
-| cold open | 4-8 s | natural sound only: the warning, "Go!", the dog running, the bite or the find; the music's impact lands on it |
-| logo sting | 3 s | the Highland logo opens on the navy field (automatic) |
-| intro, on camera | ~3.5 s | name and role, with the name tag |
-| body | ~60-70 s | one action shot per line; sections: why Highland / this dog, the dog, the training, the first real result |
-| close, on camera | ~5 s | the recommendation's last lines, to camera |
-| end card | 4 s | logo, LEARN MORE, highlandcanine.com, phone and handle (automatic) |
-
-Total 60-105 s plus the end card. A quote card on the strongest proof line, a steps card when they list steps.
-No captions (unless the user asks).
+## Shape (no voice-over: footage, natural sound, on-screen text, music)
 
 ### Social hook edit (Reels, TikTok, Shorts)
 
 | part | length | what happens |
 |---|---|---|
-| hook | 2-3 s | the single strongest sentence, its own voice, as big type over the best action shot; words land as spoken |
-| story | 25-50 s | who they are (name tag), the proof, one useful detail, the close; quick cuts |
-| end card | 4 s | as above; loops cleanly |
+| hook | 2-3 s | a short bold line over the best action (the find, the bite, the recall), words landing in rhythm |
+| the work | 8-20 s | the training itself, quick cuts (1.5-3 s), captions telling what we see |
+| the result | 3-8 s | the strongest moment, held a little longer; the music's lift |
+| close | 2-4 s | reward, dog and handler |
+| end card | 4 s | logo, LEARN MORE, highlandcanine.com, phone and handle (automatic) |
 
-Captions throughout (not over the hook or full-screen cards). 30-60 s in all. No logo sting at the start.
+20-45 s in all. No logo sting at the start.
+
+### Regular edit (YouTube, website)
+
+| part | length | what happens |
+|---|---|---|
+| cold open | 3-6 s | the biggest moment with its natural sound; the music's impact lands on it |
+| logo sting | 3 s | the Highland logo opens straight over the action (automatic; keep footage under it) |
+| the work | 15-50 s | parts with a title each ("THE SEARCH"), shots 2-4 s, cards where they help (steps, stat) |
+| the result | 5-10 s | the strongest moment |
+| close + end card | 3 s + 4 s | reward; the end card |
+
+30-90 s in all. Captions only if asked.
+
+Cuts fall in steady steps (multiples of 0.5 s) so the music meets them. Interview edits (a real person talking,
+only on request) follow references/interview.md and the approved referral's shape: cold open, logo sting, the
+speaker's lines over action b-roll, closing on camera.
 
 ## Picture
 
@@ -52,12 +56,13 @@ Captions throughout (not over the hook or full-screen cards). 30-60 s in all. No
 
 | layer | level | notes |
 |---|---|---|
-| voice | -16 LUFS regular, -14 social; peaks under -1.5 dBFS | denoised (about -17 dB on the background, steady, no gating), 80 Hz high-pass, 20 ms crossfades at every splice, room tone in every gap |
-| music | 15 dB under the speech level while someone talks, 5 dB more on words, 3 dB under it where nobody speaks (logo sting, cards, end card) and about 9 dB under it below the cold open | composed to the cut by music.py, after the cut is approved |
-| transitions | hits about 9 dB over the speech RMS | whoosh into cards, impact on the sting, cards and end card, riser into the lift |
-| natural sound | cold open at 0 dB; under the body at -13/-14 dB | tight windows only (barks, the decoy's shout); transcribed to be sure no one else is talking |
+| music | leads: the whole mix is brought to -14 LUFS (social) / -16 LUFS (regular), peaks under -1 dBTP | composed to the cut by music.py after the cut is approved; a hit on every cut |
+| shots' own sound | 6 dB under the music, each shot levelled to about -26 dBFS (boost capped at +12 dB) | `SHOT_SOUND`, per shot `sound=` (None mutes chatter) |
+| natural-sound moments | as set in `nat()` | the bark, "Good!", the bite: tight windows |
+| transitions | about 8 dB under full scale at the loudest hit | whoosh into cards, impact on the sting, cards and end card, riser into the lift |
 
-The voice is always on top: about 18 dB over the music while someone speaks (median), worst 5% about 5-6 dB.
+Interview edits: voice -16 LUFS regular / -14 social, denoised; music 15 dB under the speech while someone talks,
+5 dB more on words, 3 dB under it where nobody speaks (details in references/interview.md).
 
 ## Delivery
 

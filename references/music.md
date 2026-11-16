@@ -23,6 +23,11 @@ Offer 3-4 that fit THIS edit, best first, one line each on why. Typical picks:
 
 ## How it fits the cut
 
+- **No voice (the default).** The music leads. Inside each part the composer picks the tempo (within 9% of the
+  style's own) that puts the most cuts on its 8th notes, and adds a hit on every cut (tom, clap, rim or snare by
+  style), so the picture and the music move together. Cut in steady steps (multiples of 0.5 s) and nearly every cut
+  lands on a beat.
+
 - **Grid.** Anchors: the cold open's hit, the logo sting, the hook's cut, every section start, every card, the end
   card. The tempo stays within 9% of the style's own, bent between anchors so each one starts a bar. Anchors too
   close to fit are dropped (the end card, sting and hook win).

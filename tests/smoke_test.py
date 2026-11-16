@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """End-to-end check on made-up footage, on any computer (it is what the Windows test on GitHub runs).
 
-A synthetic interview (text-to-speech voice: Windows SAPI, macOS say, or espeak-ng) and test-pattern b-roll (one clip
-tagged HLG to exercise the HDR path, one vertical) -> transcribe -> a regular edit in both formats with graphics and
-music -> a social edit (vertical preview) with hook, captions and music. Fails loudly if any output is missing or wrong.
+Test-pattern b-roll (one clip tagged HLG to exercise the HDR path, one vertical) and a synthetic interview (a
+text-to-speech voice, used only to test the interview path): a footage-only social edit (no voice: text hook, written
+captions, the shots' own sound, music with hits on the cuts) as a preview, and an interview edit in both formats with
+speech captions, graphics and music. Fails loudly if any output is missing or wrong.
 
 Usage:  python tests/smoke_test.py [OUT_DIR]          (default tests/out)
 """
@@ -86,6 +87,7 @@ WORDS = "INTERVIEW_words.csv"
         EDIT_TYPE = "regular"
         FORMATS = ("vertical", "horizontal")
         MUSIC_STYLE = "uplifting"
+        CAPTIONS = True
         COLD = dict(clip="BROLL_A", cin=1.0, cout=4.0, hit=3.0)
         ENERGY = {{"intro": 1, "why": 2, "proof": 3, "close": 1}}
         LIFT = "proof"
@@ -107,24 +109,31 @@ WORDS = "INTERVIEW_words.csv"
         def nat(e, SH):
             return [("BROLL_A", 1.0, 4.0, 0.0, -6.0)]
     ''')
-    social = common + textwrap.dedent(f'''
+    social = textwrap.dedent(f'''
+        import os
+        HERE = os.path.dirname(os.path.abspath(__file__))
+        FOOTAGE = os.path.join(HERE, "..", "footage")
+        OUT_DIR = os.path.join(HERE, "..", "videos")
         OUTPUT = "SMOKE_social"
         EDIT_TYPE = "social"
         FORMATS = ("vertical",)
         MUSIC_STYLE = "groove"
-        HOOK = dict(lines=["The first time she found", "the hide *on her own*"])
-        ENERGY = {{"hook": 3, "intro": 1, "close": 2}}
-        SECTIONS = [("hook", [("h1", {a2 - .05:.2f}, {b2 + .05:.2f})]), ("intro", [("i1", {a0 - .05:.2f}, {b0 + .05:.2f})]),
-                    ("close", [("c1", {a3 - .05:.2f}, {b3 + .05:.2f})])]
+        LENGTH = 10.0
+        PARTS = [("hook", 0.0), ("work", 2.5), ("result", 6.0)]
+        ENERGY = {{"hook": 3, "work": 2, "result": 3}}
+        LIFT = "result"
+        HOOK = dict(lines=["Day one to", "*detection-ready*"], dur=2.5)
+        CAPTION_TEXT = [(2.8, 5.6, "Nose down, box by box."), (6.2, 9.6, "The find: a calm, clear alert.")]
         def shots(e):
             return [
-                e.S("H1", "BROLL_A", 2.0, e.nxt("hook"), [(2.0, .5, .5)], punch=.06),
-                e.S("I1", "BROLL_B", 1.0, e.nxt("intro"), [(1.0, .5, .5)], whip="i"),
-                e.S("C1", "BROLL_A", 8.0, e.PICTURE_END, [(8.0, .5, .5)]),
+                e.S("H1", "BROLL_A", 2.0, 2.5, [(2.0, .5, .5)], punch=.06),
+                e.S("W1", "BROLL_B", 1.0, 4.5, [(1.0, .5, .5)], whip="i"),
+                e.S("W2", "BROLL_A", 6.0, 6.0, [(6.0, .5, .5)], sound=None),
+                e.S("R1", "BROLL_B", 5.0, e.PICTURE_END, [(5.0, .5, .5)]),
                 e.B("END", e.TOTAL),
             ]
         def graphics(e):
-            return [e.G("lower-third", e.start("i1") + 0.1, 3.0, name="Sam Tester", role="Detection dog trainer")]
+            return [e.G("title", 6.05, 2.2, eyebrow="Detection", text="The find")]
     ''')
     for name, body in (("regular", regular), ("social", social)):
         open(os.path.join(edit, f"{name}_edit.py"), "w", encoding="utf-8").write(body)

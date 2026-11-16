@@ -202,6 +202,7 @@ def build_grid(cues, bpm):
             k = near[0]
             if p > pts[k] and k != 0.0: del pts[k]; pts[t] = p
         else: pts[t] = p
+    cuts = sorted(cues.get("cuts", [])) if not cues.get("voice", True) else []
     while True:
         xs = sorted(pts); plan, bad = [], None; prev_beat = b0
         for a, b in zip(xs, xs[1:]):
@@ -210,6 +211,10 @@ def build_grid(cues, bpm):
                 beat = L / n; dev = beat / b0 - 1
                 if abs(dev) > 0.09: continue
                 cost = abs(dev) * 3 + abs(beat / prev_beat - 1) * 2 + (0 if n % 4 == 0 else 0.05 if n % 2 == 0 else 0.14)
+                for c in cuts:                       # no voice: prefer the tempo that puts the picture's cuts on 8th notes
+                    if a < c < b:
+                        ph = ((c - a) / (beat / 2)) % 1
+                        if min(ph, 1 - ph) * beat / 2 > 0.045: cost += 0.12
                 if best is None or cost < best[0]: best = (cost, n, beat)
             if best is None: bad = (a, b); break
             plan.append((a, best[1], best[2])); prev_beat = best[2]
@@ -346,6 +351,13 @@ def render(style_id, cues):
                     if e >= 3 and j == 3: S.add("perc", ts, S.hit("hat"), 0.05, pan=-0.2)
         if e >= 3 and style_id in ("tactical", "cinematic"):                  # low brass stab on each new chord
             S.add("keys", t0, S.stab([notes[0] - 12, notes[0], notes[1]], 0.45), 0.55)
+    # no voice: a hit on every cut, so the music answers the picture
+    if not cues.get("voice", True):
+        kind, bus, g = {"tactical": ("tom", "drums", 0.42), "cinematic": ("tom", "drums", 0.45), "uplifting": ("clap", "drums", 0.24),
+                        "warm": ("rim", "drums", 0.15), "groove": ("snare", "drums", 0.26)}[style_id]
+        for c in cues.get("cuts", []):
+            if endc and c >= endc[0] - 0.05: continue
+            S.add(bus, c, S.hit(kind), g); S.add("perc", c, S.hit("tick"), 0.07)
     # sustained drone under a cold open / sting, before the voice
     if cold or sting:
         tone = chord_notes(st, 0)

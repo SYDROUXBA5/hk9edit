@@ -1,17 +1,17 @@
 # hk9edit
 
-A Claude Code skill that turns Highland Canine Training footage (someone talking to camera plus action b-roll of the
-dogs) into a finished video with the Highland motion graphics, vertical 9:16, horizontal 16:9 or both, then composes
-background music to the finished cut.
+A Claude Code skill that turns Highland Canine Training dog footage into a finished video with the Highland motion
+graphics, vertical 9:16, horizontal 16:9 or both, then composes background music to the finished cut. No voice-over:
+the action, its natural sound, short on-screen text and the graphics tell the story.
 
 Ask Claude something like *"Make a Highland video from the footage in C:\Videos\Smith interview"*, or type `/hk9edit`.
-Claude asks four quick questions (format, social hook or regular edit, length, who picks the lines), builds the cut,
+Claude asks four quick questions (format, social hook or regular edit, captions or not, length), builds the cut,
 sends a quick preview, makes your changes, and once you are happy asks which music style you want and renders the
 final files.
 
-**Social hook edit:** the strongest line as big type over the best action in the first two seconds, captions all the
-way, quick cuts, 30-60 s. **Regular edit:** action cold open, Highland logo sting, name tag, quote card, end card,
-no captions, 60-105 s.
+**Social hook edit:** a bold line over the best action in the first two seconds, quick cuts, 20-45 s.
+**Regular edit:** action cold open, the Highland logo over the action, titles and cards, 30-90 s. Captions (short
+lines of text) on either if wanted. Interview edits (a real person talking) are possible on request.
 
 ## Install on Windows (once)
 

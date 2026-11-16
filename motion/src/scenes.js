@@ -34,23 +34,26 @@ function parseWords(s) {
 
 // ------------------------------------------------------------------ CARDS
 
-function sting(ctx, t, p, A) {
-  field(ctx, t);
+// Logo sting: straight over the footage (transparent, no field). A soft shadow keeps the white lettering readable on
+// bright shots without a box; everything folds back into the hairlines at the end.
+function sting(ctx, t, p, A, o) {
   const tagline = p.tagline || COPY.tagline, url = p.url ?? COPY.url, P = PORTRAIT;
   const cx = W / 2, cy = P ? 800 : 400, s0 = P ? 1 : 0.72, pw = 720 * s0, ph = 640 * s0, hw = P ? 380 : 330;
   const a = snap(t, 0.1, 0.27), m1 = 0.37;
   const b = snap(t, m1 + HOLD, 0.23), m2 = m1 + HOLD + 0.23;
-  const r = reward(t, m2, 0.9);
-  const hh = logoWindow(ctx, A.logo, cx, cy, pw, ph, b, s0 * (1.04 - 0.04 * r));
-  box(ctx, cx - hw * a, cy - hh - 4, 2 * hw * a, 4, C.sky);
-  box(ctx, cx - hw * a, cy + hh, 2 * hw * a, 4, C.sky);
-  mark(ctx, cy, t - m1); mark(ctx, cy - ph / 2, t - m2);
+  const r = reward(t, m2, 0.9), out = 1 - snap(t, o.dur - 0.45, 0.3);
+  if (out <= 0) return;
+  ctx.save(); ctx.shadowColor = 'rgba(0,0,0,0.6)'; ctx.shadowBlur = 30; ctx.shadowOffsetY = 4;
+  const hh = logoWindow(ctx, A.logo, cx, cy, pw, ph, b * out, s0 * (1.04 - 0.04 * r));
+  box(ctx, cx - hw * a * out, cy - hh - 4, 2 * hw * a * out, 4, C.sky);
+  box(ctx, cx - hw * a * out, cy + hh, 2 * hw * a * out, 4, C.sky);
+  ctx.restore();
   const lines = P ? tagline : [tagline.join(' ')];
   const ty = cy + ph / 2 + (P ? 120 : 92);
-  lines.forEach((s, i) => soft(ctx, s, cx, ty + i * 58, reward(t, m2 + i * 0.1, 0.9), { size: P ? 38 : 34, weight: 700, track: lerp(14, 8, r), align: 'center' }));
-  const by = ty + (lines.length - 1) * 58, m3 = 1.8, u = snap(t, m3 - 0.15, 0.15);
-  box(ctx, cx - 60 * u, by + 42, 120 * u, 8, C.amber); mark(ctx, by + 46, t - m3);
-  if (url) soft(ctx, url, cx, by + 122, reward(t, m3, 0.8), { size: 32, weight: 600, color: C.sky, track: 3, align: 'center' });
+  lines.forEach((s, i) => soft(ctx, s, cx, ty + i * 58, reward(t, m2 + i * 0.1, 0.9) * out, { size: P ? 38 : 34, weight: 700, track: lerp(14, 8, r), align: 'center', shadow: 1 }));
+  const by = ty + (lines.length - 1) * 58, m3 = 1.8, u = snap(t, m3 - 0.15, 0.15) * out;
+  box(ctx, cx - 60 * u, by + 42, 120 * u, 8, C.amber);
+  if (url) soft(ctx, url, cx, by + 122, reward(t, m3, 0.8) * out, { size: 32, weight: 600, color: C.sky, track: 3, align: 'center', shadow: 1 });
 }
 
 function kinetic(ctx, t, p) {
@@ -456,7 +459,7 @@ function captions(ctx, t, p) {
 
 // id, base length (a shorter event plays the animation faster), card (opaque full frame) or overlay
 export const SCENES = [
-  { id: 'logo-sting', base: 3, card: true, draw: sting },
+  { id: 'logo-sting', base: 3, card: false, draw: sting },
   { id: 'kinetic', base: 6, card: true, draw: kinetic },
   { id: 'stat', base: 6, card: true, draw: stat },
   { id: 'before-after', base: 8, card: true, draw: beforeAfter },

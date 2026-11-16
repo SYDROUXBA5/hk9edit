@@ -10,7 +10,8 @@ All graphics are code in `motion/src/scenes.js`, drawn for 9:16 or 16:9 by headl
   `#0480b7`; amber `#f4ab12` from the logo, on one element per graphic only.
 - Text on a sky (light-blue) fill is always WHITE: name-tag role strip, programme highlight, LEARN MORE button, AFTER
   tag, caption word box.
-- The logo is transparent with white lettering, straight on the navy field; never on a white box.
+- The logo is transparent with white lettering; the logo sting draws it straight over the footage (no field,
+  a soft shadow for legibility); the end card shows it on the navy field. Never on a white box.
 - No paw prints, bones, cartoon dogs or other literal dog props.
 - Type: Raleway (lining figures). Motion: "mark, then reward": a move snaps to a hard stop, holds 4 frames while a
   white dash fires on the left rail, then the next element eases in.
@@ -25,7 +26,7 @@ under it); an overlay sits on the footage. A card shorter than its base length p
 
 | id | kind | base | words (keyword arguments) | when |
 |---|---|---|---|---|
-| `logo-sting` | card | 3 s | `tagline=[...]`, `url` | automatic after the cold open (regular) |
+| `logo-sting` | overlay | 3 s | `tagline=[...]`, `url` | automatic after the cold open (regular); keep footage under it |
 | `end-card` | card | 4 s | `cta`, `url`, `phone`, `handle` (set via `END_CARD_WORDS`) | automatic at the end |
 | `lower-third` | overlay | 4 s | `name`, `role` | the first on-camera line; 4-5 s |
 | `title` | overlay | 2.5 s | `eyebrow`, `text` | where the story turns ("HANDLER SCHOOL"); top left |
@@ -36,8 +37,8 @@ under it); an overlay sits on the footage. A card shorter than its base length p
 | `programs` | card | 10 s | `eyebrow`, `title=[...]`, `list=[up to 8]` | promos; defaults to Highland's service lines |
 | `dates` | card | 6 s | `eyebrow`, `title=[...]`, `label`, `months=[0-11]`, `place` | course start dates (from copy.js / the user) |
 | `before-after` | card | 8 s | `title`, `a`, `b`; picture: `e.SPLIT(...)` under it | behaviour change shown side by side / top and bottom |
-| `hook` | overlay | auto | `HOOK = dict(lines=[...])` in the edit | automatic in social edits, over the first section |
-| `captions` | overlay | auto | `CAPTIONS`, `CAPTION_FIXES` in the edit | automatic in social edits |
+| `hook` | overlay | auto | `HOOK = dict(lines=[...], dur=2.6)` in the edit | social edits, over the first shots |
+| `captions` | overlay | auto | `CAPTIONS` + `CAPTION_TEXT` lines (footage-only) or the speech (`CAPTION_FIXES`, interview) | when they said yes to captions |
 
 Placement notes:
 - 9:16 keeps text clear of the top 250 px and bottom 400 px (app buttons). Captions sit above the name tag.
