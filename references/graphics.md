@@ -27,7 +27,7 @@ under it); an overlay sits on the footage. A card shorter than its base length p
 | id | kind | base | words (keyword arguments) | when |
 |---|---|---|---|---|
 | `logo-sting` | overlay | 3 s | `tagline=[...]` (no website line: the end card has it) | automatic after the cold open (regular); keep footage under it |
-| `end-card` | overlay | 4 s | `cta`, `url`, `phone`, `handle` (set via `END_CARD_WORDS`) | automatic at the end, over the last shot (runs to `e.TOTAL`) |
+| `end-card` | overlay | 4 s | `cta`, `url` (set via `END_CARD_WORDS`; no phone or handle unless `phone=` / `handle=` are given) | automatic at the end, over the last shot (runs to `e.TOTAL`) |
 | `lower-third` | overlay | 4 s | `name`, `role` | the first on-camera line; 4-5 s |
 | `title` | overlay | 2.5 s | `eyebrow`, `text` | where the story turns ("HANDLER SCHOOL"); top left |
 | `quote` | card | 7 s | `text`, `highlight` (last N words in sky), `by`, `src` | the strongest proof line, while it is spoken; at most one |

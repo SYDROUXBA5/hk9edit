@@ -350,7 +350,7 @@ function endCard(ctx, t, p, A, o) {
   const out = 1 - outCubic(prog(t, OUT, 0.2)), u = snap(t, 1.15, 0.15) * (1 - snap(t, OUT, 0.15));
   box(ctx, cx - 48 * u, by + bh + (P ? 62 : 46), 96 * u, 8, C.amber);
   soft(ctx, E.url ?? COPY.url, cx, by + bh + (P ? 150 : 122), reward(t, mB, 0.7) * out, { size: P ? 54 : 48, align: 'center', track: 1, shadow: 1 });
-  const contact = [E.phone, E.handle].filter(Boolean).join('   ·   ');
+  const contact = [p.phone, p.handle].filter(Boolean).join('   ·   ');      // no phone or handle unless the edit passes them
   if (contact) soft(ctx, contact, cx, by + bh + (P ? 216 : 178), reward(t, mB + 0.15, 0.7) * out, { size: 30, weight: 700, track: 2, align: 'center', shadow: 1 });
 }
 
