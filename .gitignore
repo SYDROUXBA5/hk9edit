@@ -9,3 +9,4 @@ work_*/
 __pycache__/
 .DS_Store
 tests/out/
+examples/
