@@ -5,7 +5,7 @@
     python <skill>/scripts/build.py edit.py --audio      # sound only (a new MUSIC_STYLE or level), picture kept
 
 Times are in seconds: "source" times are positions inside a clip, "output" times are positions in the film.
-Every number below is a placeholder showing the shape; replace them all. On a Mac use python3.
+Every number below is a placeholder showing the shape; replace them all. Windows: py instead of python; Mac: python3.
 An interview edit (a real person talking) uses SECTIONS instead of PARTS/LENGTH: see references/interview.md.
 """
 

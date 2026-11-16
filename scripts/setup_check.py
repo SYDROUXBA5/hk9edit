@@ -66,5 +66,5 @@ except SystemExit as e:
     report(False, "Chrome or Edge", str(e))
 
 print("\nAll set." if ok_all else "\nInstall what is MISSING (README.md has every step), then run this check again.")
-print(f"Run the skill's scripts with: {'python' if WIN else 'python3'} <skill>/scripts/<script>.py")
+print(f"Run the skill's scripts with: {'py' if WIN else 'python3'} <skill>/scripts/<script>.py")
 sys.exit(0 if ok_all else 1)

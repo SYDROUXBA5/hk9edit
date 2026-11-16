@@ -16,7 +16,8 @@ The house style with numbers is in `references/style.md` (read it before choosin
 The whole edit lives in one Python "edit file" (copy `assets/edit_template.py`). `scripts/build.py` renders it.
 Every revision is cheap: change a number, run `--dry` (seconds), render a `--preview`, check.
 
-Commands below say `python`. On a Mac use `python3`. `S` means this skill's `scripts/` folder.
+Commands below say `python`: on Windows run them with `py` (the Python launcher; a plain `python` can open the
+Microsoft Store instead), on a Mac with `python3`. `S` means this skill's `scripts/` folder.
 
 ## 1. First, ask (before touching the footage)
 
