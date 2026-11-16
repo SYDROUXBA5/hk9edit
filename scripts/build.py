@@ -326,8 +326,10 @@ def align(words, runs):
     k = int(np.argmin(dp)); ks = [k]
     for bk in reversed(back): k = int(bk[k]); ks.append(k)
     ks.reverse()
-    groups = {}
-    for (a, b, w), k in zip(words, ks): groups.setdefault(k, []).append(w)
+    groups, keep = {}, []
+    for (a, b, w), k, mid in zip(words, ks, mids):
+        if dist(mid)[k] > 1.5: keep.append((a, b, w))            # no stretch near it: trust Whisper's own time
+        else: groups.setdefault(k, []).append(w)
     out = []
     for k in sorted(groups):
         ra, rb = runs[k]; ws = groups[k]
@@ -336,7 +338,7 @@ def align(words, runs):
         for w, wt, pz in zip(ws, weights, pauses):
             t0 = ra + (rb - ra) * acc / total; t1 = ra + (rb - ra) * (acc + wt) / total
             out.append((round(t0, 3), round(t1, 3), w)); acc += wt + pz
-    return out
+    return sorted(out + keep)
 
 def output_words(src):
     """Source words placed on the output timeline (words inside CUTS or outside the pieces drop out), fixes applied."""
@@ -626,11 +628,15 @@ def render_picture(orient, gfx_dir, gfx_key, events):
                         "[base][g]overlay=format=gbrp:eof_action=pass[ov]",
                         f"[ov]scale=out_color_matrix=bt709:out_range=tv,format=yuv420p{grain},"
                         "setparams=color_primaries=bt709:color_trc=bt709:colorspace=bt709[v]"])
-    key = hashlib.sha1(("".join(files) + graph + gfx_key).encode()).hexdigest()
+    n = round(TOTAL * FPS)
+    # capped bitrate: footage plus card grain otherwise runs near 30 Mbit/s (140 MB for 40 s); 12 Mbit/s is plenty for social
+    quality = (["-preset", "veryfast", "-crf", "23", "-maxrate", "4M", "-bufsize", "8M"] if PREVIEW
+               else ["-preset", "faster", "-crf", "18", "-maxrate", "12M", "-bufsize", "24M"])
+    key = hashlib.sha1(("".join(files) + graph + gfx_key + json.dumps(quality)).encode()).hexdigest()
     if os.path.isfile(out) and os.path.isfile(out + ".key") and open(out + ".key", encoding="utf-8").read() == key:
         print(f"picture ({orient}): unchanged, reused"); return out
     gpath = os.path.join(WORK, f"graph_{orient}{SUFFIX}.txt"); open(gpath, "w", encoding="utf-8", newline="\n").write(graph)
-    n = round(TOTAL * FPS); quality = ["-preset", "veryfast", "-crf", "23"] if PREVIEW else ["-preset", "faster", "-crf", "17"]
+
     ffmpeg_graph(["ffmpeg", "-v", "error", "-y", "-f", "concat", "-safe", "0", "-i", lst, "-framerate", str(FPS),
                   "-i", os.path.join(gfx_dir, "f_%05d.png")], gpath,
                  ["-map", "[v]", "-frames:v", str(n), "-r", str(FPS), "-c:v", "libx264"] + quality + [
